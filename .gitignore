@@ -1,0 +1,4 @@
+*.exe
+output.xml
+# vscode files
+/.vscode
