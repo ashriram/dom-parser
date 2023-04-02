@@ -1,5 +1,6 @@
 # Source files (except the main for the executable):
 file(GLOB SOURCES "src/*.cpp")
+include(./gbench/GoogleBenchmark.cmake)
 
 list(REMOVE_ITEM SOURCES "main.cpp")
 
@@ -9,7 +10,8 @@ list(REMOVE_ITEM SOURCES "main.cpp")
 
 # Compile the executable
 add_executable(dom_parser main.cpp)
-
+add_executable(dom_bench bench.cpp)
+target_link_libraries(dom_bench benchmark::benchmark Threads::Threads)
 target_link_libraries(dom_parser Threads::Threads)
 
 

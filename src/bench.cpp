@@ -28,6 +28,7 @@ THE CODE HERE IS NOT DOCUMENTED.
 #include <iostream>
 #include <vector>
 #include "DOMtree.hpp"
+#include "benchmark/benchmark.h"
 
 using namespace std;
 std::atomic<size_t> counter{0};
@@ -43,7 +44,7 @@ inline void debug_print(string s) { cout << "\n\tloadTest: " << s << "\n"; }
 
 void printNode(dom_parser::DOMnode &node, dom_parser::DOMtree &tree,
                tf::Taskflow &taskflow, std::vector<tf::Task>& tasks, tf::Task& parent) {
-  std::cout << node.getTagName() << std::endl;
+  // std::cout << node.getTagName() << std::endl;
   for (auto child : node.getChildrenUID()) {
     tf::Task tsk = taskflow
                        .emplace([&]() {
@@ -59,13 +60,9 @@ void printNode(dom_parser::DOMnode &node, dom_parser::DOMtree &tree,
   }
 }
 
-int main(int argc, char **argv) {
-
-  CLI::App app{"BinaryTree"};
-  std::string model = "ebay.xml";
-  app.add_option("-m,--dom-file-path", model, "./test/ebay.xml");
-  CLI11_PARSE(app, argc, argv);
-  std::cout << model;
+int dom_creation(int threads) {
+  std::string model = "../include/test/ebay.xml";
+  // std::cout << model;
   ofstream fout;
   dom_parser::DOMparser parser;
   string output_file = "./output.xml";
@@ -75,14 +72,14 @@ int main(int argc, char **argv) {
   e = parser.loadTree(file);
   auto timer_stop = chrono::steady_clock::now();
 
-  debug_print("PARSER RETURN VALUE: " + e);
+  // debug_print("PARSER RETURN VALUE: " + e);
   if (e != 0) {
-    debug_print("Error: At line number: " + e);
+    // debug_print("Error: At line number: " + e);
     return -1;
   }
 
 
-  debug_print("Loading done.");
+  // debug_print("Loading done.");
   long long total_time =
       chrono::duration_cast<chrono::milliseconds>(timer_stop - timer_start)
           .count();
@@ -93,9 +90,9 @@ int main(int argc, char **argv) {
   //   fout << parser.getOutput();
   //   fout.close();
   //   debug_print("Output is present in: " + output_file);
-  std::cout << parser.getOutput();
+  // std::cout << parser.getOutput();
 
-  tf::Executor executor(2);
+  tf::Executor executor(threads);
   std::vector<tf::Task> tasks;
   tf::Taskflow taskflow;
 
@@ -110,7 +107,7 @@ int main(int argc, char **argv) {
           .name(node.getTagName());
   printNode(node,domtree,taskflow,tasks,root);
 
-  taskflow.dump(std::cout);
+  // taskflow.dump(std::cout);
   auto beg = std::chrono::high_resolution_clock::now();
   executor.run(taskflow).get();
   auto end = std::chrono::high_resolution_clock::now();
@@ -128,9 +125,22 @@ int main(int argc, char **argv) {
   // cout << "Completed Load Test on " << model << " in " << total_time
       //  << " milliseconds.\n";
 
-  cout << "Completed DOM processing in " << time.count() << " microseconds.\n";
+  // cout << "Completed DOM processing in " << time.count() << " microseconds.\n";
 
   return 0;
 }
 
 // this file is for testing purposes
+
+static void DomCreation(benchmark::State &state) {
+  // Code inside this loop is measured repeatedly
+  for (auto _ : state) {
+    int x = dom_creation(state.range(0));
+    // Make sure the variable is not optimized away by compiler
+    benchmark::DoNotOptimize(x);
+  }
+}
+// Register the function as a benchmark
+BENCHMARK(DomCreation)->Name("")->DenseRange(1, 10, 1);
+
+BENCHMARK_MAIN();
