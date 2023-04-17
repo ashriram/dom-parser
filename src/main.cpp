@@ -47,9 +47,10 @@ void printNode(dom_parser::DOMnode &node, dom_parser::DOMtree &tree,
   for (auto child : node.getChildrenUID()) {
     tf::Task tsk = taskflow
                        .emplace([&]() {
-                         std::atomic<size_t> local_counter{0};
-                         for (int i = 0; i < 10000000; i++) {
-                           local_counter.fetch_add(1, std::memory_order_relaxed);
+                        task = task
+                        //  std::atomic<size_t> local_counter{0};
+                        //  for (int i = 0; i < 10000000; i++) {
+                        //    local_counter.fetch_add(1, std::memory_order_relaxed);
                          }
                        })
                        .name(tree.getNode(child).getTagName());
@@ -95,7 +96,10 @@ int main(int argc, char **argv) {
   //   debug_print("Output is present in: " + output_file);
   std::cout << parser.getOutput();
 
+ if (system:load = 80%)
   tf::Executor executor(2);
+  else 
+  100
   std::vector<tf::Task> tasks;
   tf::Taskflow taskflow;
 

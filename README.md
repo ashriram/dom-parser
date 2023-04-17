@@ -20,11 +20,27 @@ Needed work:
 
 # Parallelized DOM parser
 
-Uses C++ taskflow library.
+[Taskflow](https://github.com/taskflow/taskflow)
 
-```
+## Dependencies
+  1) C++14
+  2) CMake
+  3) Boost
+  4) C++ taskflow library 
+
+
+
+```bash
 cmake -B Build .
 cd Build; make
 ./src/dom_parser -m ../include/test/ebay.xml
 TF_ENABLE_PROFILER=simple.json ./src/dom_parser -m ../include/test/ebay.xml
+```
+
+```bash
+# Google Benchmark. Runs for threading levels 1-10.
+cmake -B Build .
+cd Build; make
+./src/dom_bench
+
 ```
