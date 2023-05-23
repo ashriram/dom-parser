@@ -18,8 +18,9 @@ AND DOES NOT CONTRIBUTE TO THE LIBRARY.
 THE CODE HERE IS NOT DOCUMENTED.
 */
 
-#include "DOMparser.hpp"
 #include "DOMnode.hpp"
+#include "DOMparser.hpp"
+#include "DOMtree.hpp"
 #include "taskflow/taskflow.hpp"
 #include <CLI11/CLI11.hpp>
 #include <chrono>
@@ -27,7 +28,6 @@ THE CODE HERE IS NOT DOCUMENTED.
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include "DOMtree.hpp"
 
 using namespace std;
 std::atomic<size_t> counter{0};
@@ -39,24 +39,46 @@ std::atomic<size_t> counter{0};
 // #include "./test/test.hpp"
 // #undef DOM_PARSER_DEBUG_MODE
 
-inline void debug_print(string s) { cout << "\n\tloadTest: " << s << "\n"; }
+void postTask(dom_parser::DOMnode &node) {
+  std::cout << node.getTagName() << std::endl;
+  std::cout << "post task\n";
+  // Post task based on child updates
+}
+
+inline void debug_print(string s) {
+  std::cout << "\n\tloadTest: " << s << "\n";
+}
 
 void printNode(dom_parser::DOMnode &node, dom_parser::DOMtree &tree,
-               tf::Taskflow &taskflow, std::vector<tf::Task>& tasks, tf::Task& parent) {
+               tf::Taskflow &taskflow, std::vector<tf::Task> &tasks,
+               tf::Task &parent, tf::Task *pre_parent) {
   std::cout << node.getTagName() << std::endl;
+
+  tf::Task pretsk = taskflow
+                        .emplace([&]() {
+                          // task = task
+                          postTask(tree.getNode(node.getUID()));
+                        })
+                        .name("Pre|"+tree.getNode(node.getUID()).getTagName()+"|"+std::to_string(node.getUID()));
+
+  if (pre_parent != nullptr) {
+    pre_parent->precede(pretsk);
+  }
+
+  if (node.getChildrenUID().empty()) {
+    pretsk.precede(parent);
+  }
+
   for (auto child : node.getChildrenUID()) {
     tf::Task tsk = taskflow
                        .emplace([&]() {
-                        task = task
-                        //  std::atomic<size_t> local_counter{0};
-                        //  for (int i = 0; i < 10000000; i++) {
-                        //    local_counter.fetch_add(1, std::memory_order_relaxed);
-                         }
+                         // task = task
+                         postTask(tree.getNode(child));
                        })
-                       .name(tree.getNode(child).getTagName());
+                       .name("Pst|"+tree.getNode(child).getTagName()+"|"+std::to_string(tree.getNode(child).getUID()));
     tasks.push_back(tsk);
     tsk.precede(parent);
-    printNode(tree.getNode(child), tree, taskflow, tasks, tsk);
+    printNode(tree.getNode(child), tree, taskflow, tasks, tsk, &pretsk);
   }
 }
 
@@ -82,7 +104,6 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-
   debug_print("Loading done.");
   long long total_time =
       chrono::duration_cast<chrono::milliseconds>(timer_stop - timer_start)
@@ -94,12 +115,8 @@ int main(int argc, char **argv) {
   //   fout << parser.getOutput();
   //   fout.close();
   //   debug_print("Output is present in: " + output_file);
-  std::cout << parser.getOutput();
-
- if (system:load = 80%)
+  //std::cout << parser.getOutput();
   tf::Executor executor(2);
-  else 
-  100
   std::vector<tf::Task> tasks;
   tf::Taskflow taskflow;
 
@@ -112,13 +129,13 @@ int main(int argc, char **argv) {
       taskflow
           .emplace([&]() { counter.fetch_add(1, std::memory_order_relaxed); })
           .name(node.getTagName());
-  printNode(node,domtree,taskflow,tasks,root);
+  printNode(node, domtree, taskflow, tasks, root, nullptr);
 
   taskflow.dump(std::cout);
-  auto beg = std::chrono::high_resolution_clock::now();
-  executor.run(taskflow).get();
-  auto end = std::chrono::high_resolution_clock::now();
-  auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - beg);
+  // auto beg = std::chrono::high_resolution_clock::now();
+  // executor.run(taskflow).get();
+  // auto end = std::chrono::high_resolution_clock::now();
+  // auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - beg);
 
   // std::cout << "Counter " << counter << std::endl;
   // assert(counter + 1 == tasks.size());
@@ -130,9 +147,9 @@ int main(int argc, char **argv) {
   //   loadTest.set_verbose(true);
   //   long long ms = loadTest.run(output_file);
   // cout << "Completed Load Test on " << model << " in " << total_time
-      //  << " milliseconds.\n";
+  //  << " milliseconds.\n";
 
-  cout << "Completed DOM processing in " << time.count() << " microseconds.\n";
+  // cout << "Completed DOM processing in " << time.count() << " microseconds.\n";
 
   return 0;
 }

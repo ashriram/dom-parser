@@ -44,3 +44,12 @@ cd Build; make
 ./src/dom_bench
 
 ```
+
+```
+./src/dom_parser -m ../include/test/app.xml
+```
+
+![alt text](./example/layout.svg)
+- Pre task (produce layout constraints for child)
+- Post (based on child’s size, position child)
+- Size (fused with post)
