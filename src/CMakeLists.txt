@@ -11,6 +11,7 @@ list(REMOVE_ITEM SOURCES "main.cpp")
 # Compile the executable
 add_executable(dom_parser main.cpp)
 add_executable(dom_bench bench.cpp)
+add_executable(layout layout.cpp)
 target_link_libraries(dom_bench benchmark::benchmark Threads::Threads)
 target_link_libraries(dom_parser Threads::Threads)
 
