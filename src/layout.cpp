@@ -14,7 +14,7 @@ int main() {
 
   containerBox->setConstraints(0, 0, 70, 70);
 
-  containerBox->layout();
+  containerBox->prelayout();
   containerBox->setPosition(0,0);
   // Perform layout algorithm
   printBox(containerBox.get());

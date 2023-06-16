@@ -19,10 +19,10 @@ public:
   int parentMinWidth = 0, parentMaxWidth = 0, parentMinHeight = 0,
       parentMaxHeight = 0;
   int x = 0, y = 0;
-
+  double flex = 0, fixed = 0;
   virtual void setConstraints(int parentMinWidth, int parentMaxWidth,
                               int parentMinHeight, int parentMaxHeight) = 0;
-  virtual void layout() = 0; // Pure virtual function
+  virtual void prelayout() = 0; // Pure virtual function
 
   virtual void setPosition(int x, int y) = 0;
 };
@@ -53,7 +53,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void layout() override {
+  void prelayout() override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -69,7 +69,7 @@ public:
 
     // If there is a child, lay it out within the adjusted constraints
     if (child) {
-      child->layout();
+      child->prelayout();
       // Add the padding back to compute the size of this box
       width = child->width + paddingLeft + paddingRight;
       height = child->height + paddingTop + paddingBottom;
@@ -128,7 +128,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void layout() override {
+  void prelayout() override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -145,7 +145,7 @@ public:
     for (StackChild &stackChild : children) {
       Box *child = stackChild.child;
       child->setConstraints(minWidth, maxWidth, minHeight, maxHeight);
-      child->layout();
+      child->prelayout();
       width = std::max(width, child->width +
                                   (int)std::abs(stackChild.horizontalAlignment *
                                                 child->width));
@@ -195,7 +195,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void layout() override {
+  void prelayout() override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -218,7 +218,7 @@ public:
     if (child) {
       child->setConstraints(childMinWidth, childMaxWidth, childMinHeight,
                             childMaxHeight);
-      child->layout();
+      child->prelayout();
       // Add the padding and margin back to compute the size of this box
       width =
           child->width + paddingLeft + paddingRight + marginLeft + marginRight;
@@ -253,7 +253,7 @@ class RowBox : public Box {
 public:
   std::vector<Box *> children;
 
-  void layout() override {
+  void prelayout() override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -273,7 +273,7 @@ public:
     // Call layout on each child.
     for (Box *child : children) {
       child->setConstraints(0, childWidth, 0, height);
-      child->layout();
+      child->prelayout();
     }
 
     // This box's width is the combined width of all children (could be less if
@@ -315,7 +315,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void layout() override {
+  void prelayout() override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -326,23 +326,26 @@ public:
     // Decide on a width for this box within the constraints.
     width = maxWidth;
 
-    // Calculate the height available for the children, splitting it equally.
-    int childHeight =
-        (children.empty()) ? maxHeight : maxHeight / children.size();
-    childHeight = std::min(
-        childHeight,
-        maxHeight); // Ensure child height does not exceed maximum height
-
-    // Call layout on each child.
+    // Calculate the total flex value of the children
+    double totalFlex = 0.0;
     for (Box *child : children) {
-      child->setConstraints(0, width, 0, childHeight);
-      child->layout();
+      totalFlex += (*child).flex;
     }
 
-    // This box's height is the combined height of all children (could be less
-    // if there's not enough children), or its own height if there are no
-    // children.
-    height = children.empty() ? maxHeight : childHeight * children.size();
+    // Calculate the height available for flexible child boxes
+    int availableHeight = maxHeight;
+    for (Box *child : children) {
+      if (child->flex > 0.0) {
+        double flexHeight = availableHeight * (*child).flex / totalFlex;
+        child->setConstraints(0, width, 0, flexHeight);
+      } else {
+        child->setConstraints(0, width, 0, child->minHeight);
+      }
+      child->prelayout();
+      availableHeight -= child->height;
+    }
+    // This box's height is the combined height of all children
+    height = maxHeight - availableHeight;
   }
 
   void setPosition(int x, int y) override {
