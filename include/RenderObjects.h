@@ -253,6 +253,14 @@ class RowBox : public Box {
 public:
   std::vector<Box *> children;
 
+  void setConstraints(int parentMinWidth, int parentMaxWidth,
+                      int parentMinHeight, int parentMaxHeight) override {
+    this->parentMinWidth = parentMinWidth;
+    this->parentMaxWidth = parentMaxWidth;
+    this->parentMinHeight = parentMinHeight;
+    this->parentMaxHeight = parentMaxHeight;
+  }
+
   void prelayout() override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
@@ -261,39 +269,43 @@ public:
     minHeight = std::max(minHeight, parentMinHeight);
     maxHeight = std::min(maxHeight, parentMaxHeight);
 
-    // Decide on a height for this box within the constraints.
+    // Decide on a height for this box within the constraints
     height = maxHeight;
 
-    // Calculate the width available for the children, splitting it equally.
-    int childWidth = (children.empty()) ? maxWidth : maxWidth / children.size();
-    childWidth =
-        std::min(childWidth,
-                 maxWidth); // Ensure child width does not exceed maximum width
-
-    // Call layout on each child.
-    for (Box *child : children) {
-      child->setConstraints(0, childWidth, 0, height);
-      child->prelayout();
+    // Calculate the total flex value of the children
+    double totalFlex = 0.0;
+    for (const auto &child : children) {
+      totalFlex += child.flex;
     }
 
-    // This box's width is the combined width of all children (could be less if
-    // there's not enough children), or its own width if there are no children.
-    width = children.empty() ? maxWidth : childWidth * children.size();
+    // Calculate the width available for flexible child boxes
+    int availableWidth = maxWidth;
+    for (const auto &child : children) {
+      if (child->flex > 0.0) {
+        double flexWidth = availableWidth * (child->flex / totalFlex);
+        child->setConstraints(0, flexWidth, 0, height);
+      } else {
+        child->setConstraints(0, child->minWidth, 0, height);
+      }
+      child->prelayout();
+      availableWidth -= child->width;
+    }
+
+    // This box's width is the combined width of all children
+    width = maxWidth - availableWidth;
   }
 
-  // Set the position of this box and its children.
-  // @param x The x coordinate of the box.
-  // @param y The y coordinate of the box.
   void setPosition(int x, int y) override {
     this->x = x;
     this->y = y;
     int childX = x;
-    for (Box *child : children) {
+    for (const auto &child : children) {
       child->setPosition(childX, y);
       childX += child->width;
     }
   }
 };
+
 
 /**
  * @class ColumnBox
