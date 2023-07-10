@@ -275,7 +275,7 @@ public:
     // Calculate the total flex value of the children
     double totalFlex = 0.0;
     for (const auto &child : children) {
-      totalFlex += child.flex;
+      totalFlex += child->flex;
     }
 
     // Calculate the width available for flexible child boxes
