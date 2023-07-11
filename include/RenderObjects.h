@@ -14,17 +14,62 @@ public:
 
   // Constraints
   int minWidth = 0, minHeight = 0, maxWidth = 100, maxHeight = 100;
-  int width = 0, height = 0;
   // Parent Constraints
   int parentMinWidth = 0, parentMaxWidth = 0, parentMinHeight = 0,
       parentMaxHeight = 0;
+  int height, width;
+  bool isroot;
   int x = 0, y = 0;
   double flex = 0, fixed = 0;
+  uint32_t id;
   virtual void setConstraints(int parentMinWidth, int parentMaxWidth,
                               int parentMinHeight, int parentMaxHeight) = 0;
   virtual void prelayout() = 0; // Pure virtual function
 
   virtual void setPosition(int x, int y) = 0;
+};
+
+/**
+ * @class SizedBox
+ * @brief Represents a box with a fixed size.
+ *
+ * The SizedBox class is a derived class of Box that represents a box with a
+ * fixed width and height. It can be used to create empty or spacer boxes with
+ * specific dimensions.
+ */
+class SizedBox : public Box {
+public:
+  SizedBox(int width, int height, uint32_t id) {
+    this->width = width;
+    this->height = height;
+    this->id = id;
+  }
+
+  void setConstraints(int parentMinWidth, int parentMaxWidth,
+                      int parentMinHeight, int parentMaxHeight) override {
+    this->parentMinWidth = parentMinWidth;
+    this->parentMaxWidth = parentMaxWidth;
+    this->parentMinHeight = parentMinHeight;
+    this->parentMaxHeight = parentMaxHeight;
+  }
+
+  void prelayout() override {
+    // Ensure that this box's constraints are within the constraints provided by
+    // the parent
+    minWidth = std::max(minWidth, parentMinWidth);
+    maxWidth = std::min(maxWidth, parentMaxWidth);
+    minHeight = std::max(minHeight, parentMinHeight);
+    maxHeight = std::min(maxHeight, parentMaxHeight);
+
+    // Clamp the width and height to the specified dimensions
+    width = width;   // std::clamp(width, minWidth, maxWidth);
+    height = height; // std::clamp(height, minHeight, maxHeight);
+  }
+
+  void setPosition(int x, int y) override {
+    this->x = x;
+    this->y = y;
+  }
 };
 
 /**
@@ -41,9 +86,14 @@ public:
   int paddingLeft = 0, paddingRight = 0, paddingTop = 0, paddingBottom = 0;
 
   PaddingBox(Box *child, int paddingLeft, int paddingRight, int paddingTop,
-             int paddingBottom)
-      : child(child), paddingLeft(paddingLeft), paddingRight(paddingRight),
-        paddingTop(paddingTop), paddingBottom(paddingBottom) {}
+             int paddingBottom, uint32_t id)
+       {
+          this->child = child;
+          this->paddingLeft = paddingLeft;
+          this->paddingRight = paddingRight;
+          this->paddingTop = paddingTop;
+          this->paddingBottom = paddingBottom;
+          this->id = id;}
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
                       int parentMinHeight, int parentMaxHeight) override {
@@ -105,7 +155,7 @@ public:
 
   StackChild(Box *child, float horizontalAlignment, float verticalAlignment)
       : child(child), horizontalAlignment(horizontalAlignment),
-        verticalAlignment(verticalAlignment) {}
+        verticalAlignment(verticalAlignment) { }
 };
 
 /**
@@ -181,11 +231,11 @@ public:
 
   ContainerBox(Box *child, int paddingLeft, int paddingRight, int paddingTop,
                int paddingBottom, int marginLeft, int marginRight,
-               int marginTop, int marginBottom)
+               int marginTop, int marginBottom, uint32_t id)
       : child(child), paddingLeft(paddingLeft), paddingRight(paddingRight),
         paddingTop(paddingTop), paddingBottom(paddingBottom),
         marginLeft(marginLeft), marginRight(marginRight), marginTop(marginTop),
-        marginBottom(marginBottom) {}
+        marginBottom(marginBottom) { this->id = id;}
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
                       int parentMinHeight, int parentMaxHeight) override {
@@ -228,6 +278,10 @@ public:
       // If there is no child, the box's size is just the padding plus margin
       width = paddingLeft + paddingRight + marginLeft + marginRight;
       height = paddingTop + paddingBottom + marginTop + marginBottom;
+    }
+    if (isroot) {
+      width = parentMinWidth;
+      height = parentMinHeight;
     }
   }
 
@@ -305,7 +359,6 @@ public:
     }
   }
 };
-
 
 /**
  * @class ColumnBox
