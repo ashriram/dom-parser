@@ -67,8 +67,8 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = x;
-    this->y = y;
+    this->x = 0;
+    this->y = 0;
   }
 };
 
@@ -131,8 +131,8 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = x;
-    this->y = y;
+    this->x = paddingLeft;
+    this->y = paddingTop;
     if (child) {
       child->setPosition(x + paddingLeft, y + paddingTop);
     }
@@ -206,8 +206,8 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = x;
-    this->y = y;
+    this->x = 0;
+    this->y = 0;
     for (StackChild &stackChild : children) {
       stackChild.child->setPosition(x, y);
     }
@@ -286,8 +286,8 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = x;
-    this->y = y;
+    this->x = 0;
+    this->y = 0;
     if (child) {
       child->setPosition(x + marginLeft + paddingLeft,
                          y + marginTop + paddingTop);
@@ -350,8 +350,8 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = x;
-    this->y = y;
+    this->x = 0;
+    this->y = 0;
     int childX = x;
     for (const auto &child : children) {
       child->setPosition(childX, y);
@@ -414,8 +414,8 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = x;
-    this->y = y;
+    this->x = 0;
+    this->y = 0;
     int childY = y;
     for (Box *child : children) {
       child->setPosition(x, childY);
