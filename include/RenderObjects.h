@@ -24,7 +24,7 @@ public:
   uint32_t id;
   virtual void setConstraints(int parentMinWidth, int parentMaxWidth,
                               int parentMinHeight, int parentMaxHeight) = 0;
-  virtual void prelayout() = 0; // Pure virtual function
+  virtual void prelayout(int serial) = 0; // Pure virtual function
 
   virtual void setPosition(int x, int y) = 0;
 };
@@ -53,7 +53,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout() override {
+  void prelayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -64,6 +64,10 @@ public:
     // Clamp the width and height to the specified dimensions
     width = width;   // std::clamp(width, minWidth, maxWidth);
     height = height; // std::clamp(height, minHeight, maxHeight);
+  }
+
+  void postlayout() {
+    // Nothing to do
   }
 
   void setPosition(int x, int y) override {
@@ -86,14 +90,14 @@ public:
   int paddingLeft = 0, paddingRight = 0, paddingTop = 0, paddingBottom = 0;
 
   PaddingBox(Box *child, int paddingLeft, int paddingRight, int paddingTop,
-             int paddingBottom, uint32_t id)
-       {
-          this->child = child;
-          this->paddingLeft = paddingLeft;
-          this->paddingRight = paddingRight;
-          this->paddingTop = paddingTop;
-          this->paddingBottom = paddingBottom;
-          this->id = id;}
+             int paddingBottom, uint32_t id) {
+    this->child = child;
+    this->paddingLeft = paddingLeft;
+    this->paddingRight = paddingRight;
+    this->paddingTop = paddingTop;
+    this->paddingBottom = paddingBottom;
+    this->id = id;
+  }
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
                       int parentMinHeight, int parentMaxHeight) override {
@@ -103,7 +107,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout() override {
+  void prelayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -119,7 +123,13 @@ public:
 
     // If there is a child, lay it out within the adjusted constraints
     if (child) {
-      child->prelayout();
+      child->prelayout(serial);
+    }
+    postlayout();
+  };
+
+  void postlayout() {
+    if (child) {
       // Add the padding back to compute the size of this box
       width = child->width + paddingLeft + paddingRight;
       height = child->height + paddingTop + paddingBottom;
@@ -128,7 +138,7 @@ public:
       width = paddingLeft + paddingRight;
       height = paddingTop + paddingBottom;
     }
-  }
+  };
 
   void setPosition(int x, int y) override {
     this->x = paddingLeft;
@@ -155,7 +165,7 @@ public:
 
   StackChild(Box *child, float horizontalAlignment, float verticalAlignment)
       : child(child), horizontalAlignment(horizontalAlignment),
-        verticalAlignment(verticalAlignment) { }
+        verticalAlignment(verticalAlignment) {}
 };
 
 /**
@@ -178,7 +188,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout() override {
+  void prelayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -195,7 +205,7 @@ public:
     for (StackChild &stackChild : children) {
       Box *child = stackChild.child;
       child->setConstraints(minWidth, maxWidth, minHeight, maxHeight);
-      child->prelayout();
+      child->prelayout(serial);
       width = std::max(width, child->width +
                                   (int)std::abs(stackChild.horizontalAlignment *
                                                 child->width));
@@ -235,7 +245,9 @@ public:
       : child(child), paddingLeft(paddingLeft), paddingRight(paddingRight),
         paddingTop(paddingTop), paddingBottom(paddingBottom),
         marginLeft(marginLeft), marginRight(marginRight), marginTop(marginTop),
-        marginBottom(marginBottom) { this->id = id;}
+        marginBottom(marginBottom) {
+    this->id = id;
+  }
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
                       int parentMinHeight, int parentMaxHeight) override {
@@ -245,7 +257,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout() override {
+  void prelayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -268,8 +280,20 @@ public:
     if (child) {
       child->setConstraints(childMinWidth, childMaxWidth, childMinHeight,
                             childMaxHeight);
-      child->prelayout();
       // Add the padding and margin back to compute the size of this box
+    }
+
+    if (serial) {
+      // Serial version
+      if (child) {
+        child->prelayout(serial);
+      }
+      postlayout();
+    }
+  }
+
+  void postlayout() {
+    if (child) {
       width =
           child->width + paddingLeft + paddingRight + marginLeft + marginRight;
       height =
@@ -315,7 +339,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout() override {
+  void prelayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -341,7 +365,7 @@ public:
       } else {
         child->setConstraints(0, child->minWidth, 0, height);
       }
-      child->prelayout();
+      child->prelayout(serial);
       availableWidth -= child->width;
     }
 
@@ -380,7 +404,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout() override {
+  void prelayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -406,7 +430,7 @@ public:
       } else {
         child->setConstraints(0, width, 0, child->minHeight);
       }
-      child->prelayout();
+      child->prelayout(serial);
       availableHeight -= child->height;
     }
     // This box's height is the combined height of all children

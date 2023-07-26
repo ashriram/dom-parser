@@ -12,6 +12,7 @@ list(REMOVE_ITEM SOURCES "main.cpp")
 add_executable(dom_parser main.cpp)
 add_executable(dom_bench bench.cpp)
 add_executable(layout layout.cpp)
+add_executable(parallel_layout parallel_layout.cpp)
 target_link_libraries(dom_bench benchmark::benchmark Threads::Threads)
 target_link_libraries(dom_parser Threads::Threads)
 
