@@ -1,5 +1,10 @@
 #include <algorithm>
+#include <sstream>
+#include <ext/json.hpp>
 #include <vector>
+
+using json = nlohmann::json;
+
 /**
  * @class Box
  * @brief Base class representing a box element in a layout hierarchy.
@@ -27,6 +32,8 @@ public:
   virtual void prelayout(int serial) = 0; // Pure virtual function
 
   virtual void setPosition(int x, int y) = 0;
+
+  virtual json tojson() = 0;
 };
 
 /**
@@ -73,6 +80,19 @@ public:
   void setPosition(int x, int y) override {
     this->x = 0;
     this->y = 0;
+  }
+
+  json tojson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "sized";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    return j;
   }
 };
 
@@ -146,6 +166,22 @@ public:
     if (child) {
       child->setPosition(x + paddingLeft, y + paddingTop);
     }
+  }
+
+  json tojson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "padding";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    if (child) {
+      j["child"] = child->tojson();
+    }
+    return j;
   }
 };
 
@@ -221,6 +257,24 @@ public:
     for (StackChild &stackChild : children) {
       stackChild.child->setPosition(x, y);
     }
+  }
+
+  json tojson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "stack";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    json children;
+    for (StackChild &stackChild : this->children) {
+      children.push_back(stackChild.child->tojson());
+    }
+    j["children"] = children;
+    return j;
   }
 };
 
@@ -317,6 +371,22 @@ public:
                          y + marginTop + paddingTop);
     }
   }
+
+  json tojson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "container";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    if (child) {
+      j["child"] = child->tojson();
+    }
+    return j;
+  }
 };
 
 /**
@@ -329,7 +399,7 @@ public:
  */
 class RowBox : public Box {
 public:
-  std::vector<Box*> children;
+  std::vector<Box *> children;
   int availableWidth = 0;
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
@@ -352,9 +422,8 @@ public:
     height = maxHeight;
 
     // Calculate the width available for flexible child boxes
-     availableWidth = maxWidth;
+    availableWidth = maxWidth;
 
-    
     // Fixed children constraints
     for (const auto &child : children) {
       if (child->flex == 0.0) {
@@ -382,7 +451,7 @@ public:
     if (serial) {
       for (const auto &child : children) {
         if (child->flex > 0.0)
-        child->prelayout(serial);
+          child->prelayout(serial);
       }
     }
   }
@@ -402,7 +471,7 @@ public:
     }
 
     // Calculate the width available for flexible child boxes
-    double flexChunkWidth = availableWidth/totalFlex;
+    double flexChunkWidth = availableWidth / totalFlex;
 
     // flex children constraints
     for (const auto &child : children) {
@@ -416,7 +485,6 @@ public:
     width = maxWidth - availableWidth;
   }
 
-
   void setPosition(int x, int y) override {
     this->x = 0;
     this->y = 0;
@@ -425,6 +493,24 @@ public:
       child->setPosition(childX, y);
       childX += child->width;
     }
+  }
+
+  json tojson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "row";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    json children;
+    for (const auto &child : this->children) {
+      children.push_back(child->tojson());
+    }
+    j["children"] = children;
+    return j;
   }
 };
 
@@ -489,5 +575,23 @@ public:
       child->setPosition(x, childY);
       childY += child->height;
     }
+  }
+
+  json tojson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "row";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    json children;
+    for (const auto &child : this->children) {
+      children.push_back(child->tojson());
+    }
+    j["children"] = children;
+    return j;
   }
 };
