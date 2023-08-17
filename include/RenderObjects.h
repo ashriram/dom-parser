@@ -6,6 +6,15 @@
 
 using json = nlohmann::json;
 
+#define HEXSTR(x) std::hex << std::setfill('0') << std::setw(6) << x
+
+// Convert integer to hex string with 6 digits and return in string
+std::string hexstr(uint32_t x) {
+  std::stringstream ss;
+  ss << "#" << std::hex << std::setfill('0') << std::setw(6) << x;
+  return ss.str();
+}
+
 /**
  * @class Box
  * @brief Base class representing a box element in a layout hierarchy.
@@ -36,9 +45,12 @@ public:
 
   virtual void postLayout() = 0;
 
-  virtual void getTasks(tf::Taskflow &) = 0;
+  virtual void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                        tf::Taskflow &) = 0;
 
   virtual json toJson() = 0;
+
+  std::string getID() { return hexstr(id); }
 };
 
 /**
@@ -98,7 +110,8 @@ public:
     return j;
   }
 
-  void getTasks(tf::Taskflow &tf) override {
+  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                tf::Taskflow &tf) override {
     assert(0 && "Unimplemented function");
   }
 };
@@ -191,7 +204,8 @@ public:
     return j;
   }
 
-  void getTasks(tf::Taskflow &tf) override {
+  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                tf::Taskflow &tf) override {
     assert(0 && "Unimplemented function");
   }
 };
@@ -293,7 +307,8 @@ public:
     return j;
   }
 
-  void getTasks(tf::Taskflow &tf) override {
+  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                tf::Taskflow &tf) override {
     assert(0 && "Unimplemented function");
   }
 };
@@ -408,8 +423,13 @@ public:
     return j;
   }
 
-  void getTasks(tf::Taskflow &tf) override {
-    assert(0 && "Unimplemented function");
+  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[getID()] =
+        &(tf.emplace([&]() { preLayout(0); }).name(getID()));
+    taskmap[getID() + "_p"] =
+        &(tf.emplace([&]() { postLayout(); }).name(getID() + "_p"));
+    taskmap[getID()]->precede(*(taskmap[getID()+"_p"]));
   }
 };
 
@@ -537,8 +557,17 @@ public:
     return j;
   }
 
-  void getTasks(tf::Taskflow &tf) override {
-    assert(0 && "Unimplemented function");
+  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[hexstr(id)] =
+        &(tf.emplace([&]() { preLayout(0); }).name(hexstr(id)));
+    taskmap[hexstr(id) + "_p"] =
+        &(tf.emplace([&]() { postLayout(); }).name(hexstr(id) + "p"));
+    for (auto &child : children) {
+      child->getTasks(taskmap, tf);
+      taskmap[hexstr(id)]->precede(*(taskmap[hexstr(child->id)]));
+      taskmap[hexstr(child->id) + "p"]->precede(*(taskmap[hexstr(id) + "_p"]));
+    };
   }
 };
 
@@ -615,7 +644,7 @@ public:
         availableHeight -= child->height;
       }
     }
-    
+
     // Calculate the total flex value of the children
     double totalFlex = 0.0;
     for (const auto &child : children) {
@@ -631,7 +660,7 @@ public:
       if (child->flex > 0.0) {
         double flexHeight = flexChunkHeight * child->flex;
         availableHeight = availableHeight - flexHeight;
-        child->setConstraints(width,width,flexHeight, flexHeight);
+        child->setConstraints(width, width, flexHeight, flexHeight);
       }
     }
     // This box's height is the combined height of all children
@@ -666,7 +695,16 @@ public:
     return j;
   }
 
-  void getTasks(tf::Taskflow &tf) override {
-    assert(0 && "Unimplemented function");
+  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[hexstr(id)] =
+        &(tf.emplace([&]() { preLayout(0); }).name(hexstr(id)));
+    taskmap[hexstr(id) + "_p"] =
+        &(tf.emplace([&]() { postLayout(); }).name(hexstr(id) + "p"));
+    for (auto &child : children) {
+      child->getTasks(taskmap, tf);
+      taskmap[hexstr(id)]->precede(*(taskmap[hexstr(child->id)]));
+      taskmap[hexstr(child->id) + "p"]->precede(*(taskmap[hexstr(id) + "_p"]));
+    };
   }
 };
