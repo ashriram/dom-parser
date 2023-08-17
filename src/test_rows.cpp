@@ -7,8 +7,8 @@ int main() {
   std::unique_ptr<RowBox> row154a4 = std::make_unique<RowBox>();
   row154a4.get()->isroot = false;
   row154a4.get()->id = 0x154a4;
-  row154a4.get()->children.reserve(3);
-  for (int i = 0; i < 3; i++) {
+  row154a4.get()->children.reserve(20);
+  for (int i = 0; i < 20; i++) {
     row154a4->children.push_back(new ContainerBox(nullptr, 0,0,0,0,0,0,0,0, 0xac347 + i));
     auto child = row154a4->children[i];
     child->flex = 1;
@@ -72,7 +72,7 @@ int main() {
   executor_1.run_n(taskflows, 1000).wait();
   end = std::chrono::high_resolution_clock::now();
   time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
-  std::cout << std::dec << "1 thread DOM processing 1x work: " << time.count() / 1000
+  std::cout << std::dec << "8 thread DOM processing 1x work: " << time.count() / 1000
             << " nanoseconds.\n";
 
   root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
