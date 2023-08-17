@@ -33,6 +33,8 @@ public:
 
   virtual void setPosition(int x, int y) = 0;
 
+  virtual void postlayout() = 0;
+
   virtual json tojson() = 0;
 };
 
@@ -73,7 +75,7 @@ public:
     height = height; // std::clamp(height, minHeight, maxHeight);
   }
 
-  void postlayout() {
+  void postlayout() override {
     // Nothing to do
   }
 
@@ -148,7 +150,7 @@ public:
     postlayout();
   };
 
-  void postlayout() {
+  void postlayout() override {
     if (child) {
       // Add the padding back to compute the size of this box
       width = child->width + paddingLeft + paddingRight;
@@ -251,6 +253,12 @@ public:
     }
   }
 
+  void postlayout() override {
+    assert(0);
+    // To be filled for enabling parallelism
+
+  }
+
   void setPosition(int x, int y) override {
     this->x = 0;
     this->y = 0;
@@ -346,7 +354,7 @@ public:
     }
   }
 
-  void postlayout() {
+  void postlayout() override {
     if (child) {
       width =
           child->width + paddingLeft + paddingRight + marginLeft + marginRight;
@@ -444,7 +452,7 @@ public:
     // postlayout after fixed children
     // Calculate width and set constraints for flexible children
     if (serial) {
-      postlayout_fixed();
+      postlayout();
     }
 
     // Invoke prelayout on flex children
@@ -456,7 +464,7 @@ public:
     }
   }
 
-  void postlayout_fixed() {
+  void postlayout() override {
     // Calculate the width available for flexible child boxes
     for (const auto &child : children) {
       if (child->flex == 0.0) {
@@ -593,5 +601,9 @@ public:
     }
     j["children"] = children;
     return j;
+  }
+  void postlayout() override {
+    assert(0);
+    // To be filled for enabling parallelism
   }
 };
