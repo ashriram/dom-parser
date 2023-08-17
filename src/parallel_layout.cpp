@@ -37,7 +37,7 @@ int main() {
   root->setConstraints(1262, 1262, 684, 684); // Viewport size
   root->isroot =
       true; // Set root to true. This is used to expand root to occupy viewport.
-            //   root->prelayout(1);  // Perform layout algorithm
+            //   root->preLayout(1);  // Perform layout algorithm
   //   root->setPosition(0, 0); // Set coordinates. Currently sets global
   //   coordinates
 
@@ -45,21 +45,21 @@ int main() {
   tf::Taskflow taskflows[10], serial_taskflow, multiple_taskflow;
   int idx = 0;
 
-  auto t_serial = serial_taskflow.emplace([&]() { root->prelayout(1); }).name("root_serial");
+  auto t_serial = serial_taskflow.emplace([&]() { root->preLayout(1); }).name("root_serial");
   // Write a range iterator on taskflows
   for (auto &taskflow : taskflows) {
 
     // Prelayout Tasks
-    auto t1 = taskflow.emplace([&]() { root->prelayout(1); }).name("root");
-    // auto t2 = taskflow.emplace([&]() { padding154a4->prelayout(0); })
+    auto t1 = taskflow.emplace([&]() { root->preLayout(1); }).name("root");
+    // auto t2 = taskflow.emplace([&]() { padding154a4->preLayout(0); })
     //               .name("padding154a4");
-    // auto t3 = taskflow.emplace([&]() { padding3b44a->prelayout(0); })
+    // auto t3 = taskflow.emplace([&]() { padding3b44a->preLayout(0); })
     //               .name("padding3b44a");
-    // auto t4 = taskflow.emplace([&]() { padding9c215->prelayout(0); })
+    // auto t4 = taskflow.emplace([&]() { padding9c215->preLayout(0); })
     //               .name("padding9c215");
-    // auto t5 = taskflow.emplace([&]() { container7060f->prelayout(0); })
+    // auto t5 = taskflow.emplace([&]() { container7060f->preLayout(0); })
     //               .name("container7060f");
-    // auto t6 = taskflow.emplace([&]() { sizedBoxac347->prelayout(0); })
+    // auto t6 = taskflow.emplace([&]() { sizedBoxac347->preLayout(0); })
     //               .name("sizedBoxac347");
     // t1.precede(t2);
     // t2.precede(t3);
@@ -67,17 +67,17 @@ int main() {
     // t4.precede(t5);
     // t5.precede(t6);
 
-    // auto t6_p = taskflow.emplace([&]() { sizedBoxac347->postlayout(); })
+    // auto t6_p = taskflow.emplace([&]() { sizedBoxac347->postLayout(); })
     //                 .name("sizedBoxac347_p");
-    // auto t5_p = taskflow.emplace([&]() { container7060f->postlayout(); })
+    // auto t5_p = taskflow.emplace([&]() { container7060f->postLayout(); })
     //                 .name("container7060f_p");
-    // auto t4_p = taskflow.emplace([&]() { padding9c215->postlayout(); })
+    // auto t4_p = taskflow.emplace([&]() { padding9c215->postLayout(); })
     //                 .name("padding9c215_p");
-    // auto t3_p = taskflow.emplace([&]() { padding3b44a->postlayout(); })
+    // auto t3_p = taskflow.emplace([&]() { padding3b44a->postLayout(); })
     //                 .name("padding3b44a_p");
-    // auto t2_p = taskflow.emplace([&]() { padding154a4->postlayout(); })
+    // auto t2_p = taskflow.emplace([&]() { padding154a4->postLayout(); })
     //                 .name("padding154a4_p");
-    // auto t1_p = taskflow.emplace([&]() { root->postlayout(); }).name("root_p");
+    // auto t1_p = taskflow.emplace([&]() { root->postLayout(); }).name("root_p");
 
     // t6.precede(t6_p);
     // t6_p.precede(t5_p);
@@ -126,7 +126,7 @@ int main() {
 
   beg = std::chrono::high_resolution_clock::now();
   for(int i = 0; i < 1000; i++) {
-    root->prelayout(1);
+    root->preLayout(1);
   }
   end = std::chrono::high_resolution_clock::now();
   time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
@@ -180,7 +180,7 @@ int main() {
 
 //   containerBox->setConstraints(0, 0, 70, 70);
 
-//   containerBox->prelayout();
+//   containerBox->preLayout();
 //   containerBox->setPosition(0,0);
 //   // Perform layout algorithm
 //   printBox(containerBox.get());

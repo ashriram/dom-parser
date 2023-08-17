@@ -1,6 +1,7 @@
+#include "taskflow/taskflow.hpp"
 #include <algorithm>
-#include <sstream>
 #include <ext/json.hpp>
+#include <sstream>
 #include <vector>
 
 using json = nlohmann::json;
@@ -29,13 +30,15 @@ public:
   uint32_t id;
   virtual void setConstraints(int parentMinWidth, int parentMaxWidth,
                               int parentMinHeight, int parentMaxHeight) = 0;
-  virtual void prelayout(int serial) = 0; // Pure virtual function
+  virtual void preLayout(int serial) = 0; // Pure virtual function
 
   virtual void setPosition(int x, int y) = 0;
 
-  virtual void postlayout() = 0;
+  virtual void postLayout() = 0;
 
-  virtual json tojson() = 0;
+  virtual void getTasks(tf::Taskflow &) = 0;
+
+  virtual json toJson() = 0;
 };
 
 /**
@@ -62,7 +65,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout(int serial) override {
+  void preLayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -75,16 +78,14 @@ public:
     height = height; // std::clamp(height, minHeight, maxHeight);
   }
 
-  void postlayout() override {
-    // Nothing to do
-  }
+  void postLayout() override { assert(0 && "Unimplemented function"); }
 
   void setPosition(int x, int y) override {
     this->x = 0;
     this->y = 0;
   }
 
-  json tojson() override {
+  json toJson() override {
     json j;
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
@@ -95,6 +96,10 @@ public:
     j["x"] = x;
     j["y"] = y;
     return j;
+  }
+
+  void getTasks(tf::Taskflow &tf) override {
+    assert(0 && "Unimplemented function");
   }
 };
 
@@ -129,7 +134,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout(int serial) override {
+  void preLayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -145,12 +150,12 @@ public:
 
     // If there is a child, lay it out within the adjusted constraints
     if (child) {
-      child->prelayout(serial);
+      child->preLayout(serial);
     }
-    postlayout();
+    postLayout();
   };
 
-  void postlayout() override {
+  void postLayout() override {
     if (child) {
       // Add the padding back to compute the size of this box
       width = child->width + paddingLeft + paddingRight;
@@ -170,7 +175,7 @@ public:
     }
   }
 
-  json tojson() override {
+  json toJson() override {
     json j;
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
@@ -181,9 +186,13 @@ public:
     j["x"] = x;
     j["y"] = y;
     if (child) {
-      j["child"] = child->tojson();
+      j["child"] = child->toJson();
     }
     return j;
+  }
+
+  void getTasks(tf::Taskflow &tf) override {
+    assert(0 && "Unimplemented function");
   }
 };
 
@@ -226,7 +235,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout(int serial) override {
+  void preLayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -243,7 +252,7 @@ public:
     for (StackChild &stackChild : children) {
       Box *child = stackChild.child;
       child->setConstraints(minWidth, maxWidth, minHeight, maxHeight);
-      child->prelayout(serial);
+      child->preLayout(serial);
       width = std::max(width, child->width +
                                   (int)std::abs(stackChild.horizontalAlignment *
                                                 child->width));
@@ -253,10 +262,9 @@ public:
     }
   }
 
-  void postlayout() override {
-    assert(0);
+  void postLayout() override {
+    assert(0 && "Unimplemented function");
     // To be filled for enabling parallelism
-
   }
 
   void setPosition(int x, int y) override {
@@ -267,7 +275,7 @@ public:
     }
   }
 
-  json tojson() override {
+  json toJson() override {
     json j;
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
@@ -279,10 +287,14 @@ public:
     j["y"] = y;
     json children;
     for (StackChild &stackChild : this->children) {
-      children.push_back(stackChild.child->tojson());
+      children.push_back(stackChild.child->toJson());
     }
     j["children"] = children;
     return j;
+  }
+
+  void getTasks(tf::Taskflow &tf) override {
+    assert(0 && "Unimplemented function");
   }
 };
 
@@ -319,7 +331,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout(int serial) override {
+  void preLayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -348,13 +360,13 @@ public:
     if (serial) {
       // Serial version
       if (child) {
-        child->prelayout(serial);
+        child->preLayout(serial);
       }
-      postlayout();
+      postLayout();
     }
   }
 
-  void postlayout() override {
+  void postLayout() override {
     if (child) {
       width =
           child->width + paddingLeft + paddingRight + marginLeft + marginRight;
@@ -380,7 +392,7 @@ public:
     }
   }
 
-  json tojson() override {
+  json toJson() override {
     json j;
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
@@ -391,9 +403,13 @@ public:
     j["x"] = x;
     j["y"] = y;
     if (child) {
-      j["child"] = child->tojson();
+      j["child"] = child->toJson();
     }
     return j;
+  }
+
+  void getTasks(tf::Taskflow &tf) override {
+    assert(0 && "Unimplemented function");
   }
 };
 
@@ -418,7 +434,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout(int serial) override {
+  void preLayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -445,26 +461,26 @@ public:
       // Invoke prelayout on fixed children
       for (const auto &child : children) {
         if (child->flex == 0.0) {
-          child->prelayout(serial);
+          child->preLayout(serial);
         }
       }
     }
     // postlayout after fixed children
     // Calculate width and set constraints for flexible children
     if (serial) {
-      postlayout();
+      postLayout();
     }
 
     // Invoke prelayout on flex children
     if (serial) {
       for (const auto &child : children) {
         if (child->flex > 0.0)
-          child->prelayout(serial);
+          child->preLayout(serial);
       }
     }
   }
 
-  void postlayout() override {
+  void postLayout() override {
     // Calculate the width available for flexible child boxes
     for (const auto &child : children) {
       if (child->flex == 0.0) {
@@ -503,7 +519,7 @@ public:
     }
   }
 
-  json tojson() override {
+  json toJson() override {
     json j;
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
@@ -515,10 +531,14 @@ public:
     j["y"] = y;
     json children;
     for (const auto &child : this->children) {
-      children.push_back(child->tojson());
+      children.push_back(child->toJson());
     }
     j["children"] = children;
     return j;
+  }
+
+  void getTasks(tf::Taskflow &tf) override {
+    assert(0 && "Unimplemented function");
   }
 };
 
@@ -533,6 +553,7 @@ public:
 class ColumnBox : public Box {
 public:
   std::vector<Box *> children;
+  int availableHeight;
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
                       int parentMinHeight, int parentMaxHeight) override {
@@ -542,7 +563,7 @@ public:
     this->parentMaxHeight = parentMaxHeight;
   }
 
-  void prelayout(int serial) override {
+  void preLayout(int serial) override {
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -553,23 +574,65 @@ public:
     // Decide on a width for this box within the constraints.
     width = maxWidth;
 
+    availableHeight = maxHeight;
+
+    // Fixed children constraints
+    for (const auto &child : children) {
+      if (child->flex == 0.0) {
+        child->setConstraints(child->parentMinWidth, child->parentMaxWidth,
+                              height, height);
+      }
+    }
+
+    if (serial) {
+      // Serial version
+      // Invoke prelayout on fixed children
+      for (const auto &child : children) {
+        if (child->flex == 0.0) {
+          child->preLayout(serial);
+        }
+      }
+    }
+    // postlayout after fixed children
+    // Calculate width and set constraints for flexible children
+    if (serial) {
+      postLayout();
+    }
+
+    // Invoke prelayout on flex children
+    if (serial) {
+      for (const auto &child : children) {
+        if (child->flex > 0.0)
+          child->preLayout(serial);
+      }
+    }
+  }
+
+  void postLayout() override {
+    // Calculate the width available for flexible child boxes
+    for (const auto &child : children) {
+      if (child->flex == 0.0) {
+        availableHeight -= child->height;
+      }
+    }
+    
     // Calculate the total flex value of the children
     double totalFlex = 0.0;
-    for (Box *child : children) {
-      totalFlex += (*child).flex;
+    for (const auto &child : children) {
+      totalFlex += child->flex;
     }
 
     // Calculate the height available for flexible child boxes
-    int availableHeight = maxHeight;
-    for (Box *child : children) {
+    double flexChunkHeight = availableHeight / totalFlex;
+
+    // flex children constraints
+    for (const auto &child : children) {
+      assert(availableHeight >= 0);
       if (child->flex > 0.0) {
-        double flexHeight = availableHeight * (*child).flex / totalFlex;
-        child->setConstraints(0, width, 0, flexHeight);
-      } else {
-        child->setConstraints(0, width, 0, child->minHeight);
+        double flexHeight = flexChunkHeight * child->flex;
+        availableHeight = availableHeight - flexHeight;
+        child->setConstraints(width,width,flexHeight, flexHeight);
       }
-      child->prelayout(serial);
-      availableHeight -= child->height;
     }
     // This box's height is the combined height of all children
     height = maxHeight - availableHeight;
@@ -585,7 +648,7 @@ public:
     }
   }
 
-  json tojson() override {
+  json toJson() override {
     json j;
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
@@ -597,13 +660,13 @@ public:
     j["y"] = y;
     json children;
     for (const auto &child : this->children) {
-      children.push_back(child->tojson());
+      children.push_back(child->toJson());
     }
     j["children"] = children;
     return j;
   }
-  void postlayout() override {
-    assert(0);
-    // To be filled for enabling parallelism
+
+  void getTasks(tf::Taskflow &tf) override {
+    assert(0 && "Unimplemented function");
   }
 };

@@ -39,7 +39,7 @@ int main() {
 
   auto beg = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < 1000; i++) {
-    root->prelayout(1); // Perform layout algorithm
+    root->preLayout(1); // Perform layout algorithm
   }
   auto end = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg)/1000;
@@ -68,7 +68,7 @@ int main() {
 
 //   containerBox->setConstraints(0, 0, 70, 70);
 
-//   containerBox->prelayout();
+//   containerBox->preLayout();
 //   containerBox->setPosition(0,0);
 //   // Perform layout algorithm
 //   printBox(containerBox.get());

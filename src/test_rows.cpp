@@ -23,7 +23,7 @@ int main() {
 
   auto beg = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < 1000; i++) {
-    root->prelayout(1); // Perform layout algorithm
+    root->preLayout(1); // Perform layout algorithm
   }
   auto end = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg)/1000;
@@ -31,28 +31,28 @@ int main() {
             << "nanoseconds.\n";
 
   root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
-  std::cout << std::setw(4) << std::hex << root->tojson();
+  std::cout << std::setw(4) << std::hex << root->toJson();
 
 
   //  Test Parallel Version
   std::unordered_map<std::string,tf::Task> taskmap;
   tf::Taskflow taskflows;
-  taskmap["root"] = taskflows.emplace([&]() { root->prelayout(0); }).name("root");
+  taskmap["root"] = taskflows.emplace([&]() { root->preLayout(0); }).name("root");
   taskmap["root_p"] =
-      taskflows.emplace([&]() { root->postlayout(); }).name("root_p");
+      taskflows.emplace([&]() { root->postLayout(); }).name("root_p");
 
-  taskmap["row154a4"] = taskflows.emplace([&]() { row154a4->prelayout(0); }).name("row154a4");
+  taskmap["row154a4"] = taskflows.emplace([&]() { row154a4->preLayout(0); }).name("row154a4");
   taskmap["row154a4_p"] =
-      taskflows.emplace([&]() { row154a4->postlayout(); }).name("row154a4_p");
+      taskflows.emplace([&]() { row154a4->postLayout(); }).name("row154a4_p");
 
   for(auto &child: row154a4->children) {
     std::stringstream ss_pre,ss_post;
     ss_pre << "#" << std::hex << std::setfill('0') << std::setw(6) << child->id;
-    taskmap[ss_pre.str()] = taskflows.emplace([&]() { child->prelayout(0); }).name(ss_pre.str());
+    taskmap[ss_pre.str()] = taskflows.emplace([&]() { child->preLayout(0); }).name(ss_pre.str());
 
     ss_post << "p#" << std::hex << std::setfill('0') << std::setw(6) << child->id;
     taskmap[ss_post.str()] =
-        taskflows.emplace([&]() { child->postlayout(); }).name(ss_post.str());
+        taskflows.emplace([&]() { child->postLayout(); }).name(ss_post.str());
   
     taskmap["row154a4"].precede(taskmap[ss_pre.str()]); // [0
     taskmap[ss_pre.str()].precede(taskmap[ss_post.str()]); // [1]
@@ -76,7 +76,7 @@ int main() {
             << " nanoseconds.\n";
 
   root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
-  std::cout << std::setw(4) << std::hex << root->tojson();
+  std::cout << std::setw(4) << std::hex << root->toJson();
 
   return 0;
 }
