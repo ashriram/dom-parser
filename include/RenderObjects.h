@@ -13,7 +13,7 @@ public:
   virtual ~Box() = default;
 
   // Constraints
-  int minWidth = 0, minHeight = 0, maxWidth = 100, maxHeight = 100;
+  int minWidth = 0, minHeight = 0, maxWidth = INT32_MAX, maxHeight = INT32_MAX;
   // Parent Constraints
   int parentMinWidth = 0, parentMaxWidth = 0, parentMinHeight = 0,
       parentMaxHeight = 0;
@@ -329,7 +329,8 @@ public:
  */
 class RowBox : public Box {
 public:
-  std::vector<Box *> children;
+  std::vector<Box*> children;
+  int availableWidth = 0;
 
   void setConstraints(int parentMinWidth, int parentMaxWidth,
                       int parentMinHeight, int parentMaxHeight) override {
@@ -350,6 +351,50 @@ public:
     // Decide on a height for this box within the constraints
     height = maxHeight;
 
+    // Calculate the width available for flexible child boxes
+     availableWidth = maxWidth;
+
+    
+    // Fixed children constraints
+    for (const auto &child : children) {
+      if (child->flex == 0.0) {
+        child->setConstraints(child->parentMinWidth, child->parentMaxWidth,
+                              height, height);
+      }
+    }
+
+    if (serial) {
+      // Serial version
+      // Invoke prelayout on fixed children
+      for (const auto &child : children) {
+        if (child->flex == 0.0) {
+          child->prelayout(serial);
+        }
+      }
+    }
+    // postlayout after fixed children
+    // Calculate width and set constraints for flexible children
+    if (serial) {
+      postlayout_fixed();
+    }
+
+    // Invoke prelayout on flex children
+    if (serial) {
+      for (const auto &child : children) {
+        if (child->flex > 0.0)
+        child->prelayout(serial);
+      }
+    }
+  }
+
+  void postlayout_fixed() {
+    // Calculate the width available for flexible child boxes
+    for (const auto &child : children) {
+      if (child->flex == 0.0) {
+        availableWidth -= child->width;
+      }
+    }
+
     // Calculate the total flex value of the children
     double totalFlex = 0.0;
     for (const auto &child : children) {
@@ -357,21 +402,20 @@ public:
     }
 
     // Calculate the width available for flexible child boxes
-    int availableWidth = maxWidth;
-    for (const auto &child : children) {
-      if (child->flex > 0.0) {
-        double flexWidth = availableWidth * (child->flex / totalFlex);
-        child->setConstraints(0, flexWidth, 0, height);
-      } else {
-        child->setConstraints(0, child->minWidth, 0, height);
-      }
-      child->prelayout(serial);
-      availableWidth -= child->width;
-    }
+    double flexChunkWidth = availableWidth/totalFlex;
 
-    // This box's width is the combined width of all children
+    // flex children constraints
+    for (const auto &child : children) {
+      assert(availableWidth >= 0);
+      if (child->flex > 0.0) {
+        double flexWidth = flexChunkWidth * child->flex;
+        availableWidth = availableWidth - flexWidth;
+        child->setConstraints(flexWidth, flexWidth, height, height);
+      }
+    }
     width = maxWidth - availableWidth;
   }
+
 
   void setPosition(int x, int y) override {
     this->x = 0;

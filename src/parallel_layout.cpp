@@ -42,48 +42,49 @@ int main() {
   //   coordinates
 
   std::vector<tf::Task> tasks;
-  tf::Taskflow taskflows[20], multiple_taskflow;
+  tf::Taskflow taskflows[10], serial_taskflow, multiple_taskflow;
   int idx = 0;
 
+  auto t_serial = serial_taskflow.emplace([&]() { root->prelayout(1); }).name("root_serial");
   // Write a range iterator on taskflows
   for (auto &taskflow : taskflows) {
 
     // Prelayout Tasks
-    auto t1 = taskflow.emplace([&]() { root->prelayout(0); }).name("root");
-    auto t2 = taskflow.emplace([&]() { padding154a4->prelayout(0); })
-                  .name("padding154a4");
-    auto t3 = taskflow.emplace([&]() { padding3b44a->prelayout(0); })
-                  .name("padding3b44a");
-    auto t4 = taskflow.emplace([&]() { padding9c215->prelayout(0); })
-                  .name("padding9c215");
-    auto t5 = taskflow.emplace([&]() { container7060f->prelayout(0); })
-                  .name("container7060f");
-    auto t6 = taskflow.emplace([&]() { sizedBoxac347->prelayout(0); })
-                  .name("sizedBoxac347");
-    t1.precede(t2);
-    t2.precede(t3);
-    t3.precede(t4);
-    t4.precede(t5);
-    t5.precede(t6);
+    auto t1 = taskflow.emplace([&]() { root->prelayout(1); }).name("root");
+    // auto t2 = taskflow.emplace([&]() { padding154a4->prelayout(0); })
+    //               .name("padding154a4");
+    // auto t3 = taskflow.emplace([&]() { padding3b44a->prelayout(0); })
+    //               .name("padding3b44a");
+    // auto t4 = taskflow.emplace([&]() { padding9c215->prelayout(0); })
+    //               .name("padding9c215");
+    // auto t5 = taskflow.emplace([&]() { container7060f->prelayout(0); })
+    //               .name("container7060f");
+    // auto t6 = taskflow.emplace([&]() { sizedBoxac347->prelayout(0); })
+    //               .name("sizedBoxac347");
+    // t1.precede(t2);
+    // t2.precede(t3);
+    // t3.precede(t4);
+    // t4.precede(t5);
+    // t5.precede(t6);
 
-    auto t6_p = taskflow.emplace([&]() { sizedBoxac347->postlayout(); })
-                    .name("sizedBoxac347_p");
-    auto t5_p = taskflow.emplace([&]() { container7060f->postlayout(); })
-                    .name("container7060f_p");
-    auto t4_p = taskflow.emplace([&]() { padding9c215->postlayout(); })
-                    .name("padding9c215_p");
-    auto t3_p = taskflow.emplace([&]() { padding3b44a->postlayout(); })
-                    .name("padding3b44a_p");
-    auto t2_p = taskflow.emplace([&]() { padding154a4->postlayout(); })
-                    .name("padding154a4_p");
-    auto t1_p = taskflow.emplace([&]() { root->postlayout(); }).name("root_p");
+    // auto t6_p = taskflow.emplace([&]() { sizedBoxac347->postlayout(); })
+    //                 .name("sizedBoxac347_p");
+    // auto t5_p = taskflow.emplace([&]() { container7060f->postlayout(); })
+    //                 .name("container7060f_p");
+    // auto t4_p = taskflow.emplace([&]() { padding9c215->postlayout(); })
+    //                 .name("padding9c215_p");
+    // auto t3_p = taskflow.emplace([&]() { padding3b44a->postlayout(); })
+    //                 .name("padding3b44a_p");
+    // auto t2_p = taskflow.emplace([&]() { padding154a4->postlayout(); })
+    //                 .name("padding154a4_p");
+    // auto t1_p = taskflow.emplace([&]() { root->postlayout(); }).name("root_p");
 
-    t6.precede(t6_p);
-    t6_p.precede(t5_p);
-    t5_p.precede(t4_p);
-    t4_p.precede(t3_p);
-    t3_p.precede(t2_p);
-    t2_p.precede(t1_p);
+    // t6.precede(t6_p);
+    // t6_p.precede(t5_p);
+    // t5_p.precede(t4_p);
+    // t4_p.precede(t3_p);
+    // t3_p.precede(t2_p);
+    // t2_p.precede(t1_p);
 
     multiple_taskflow.composed_of(taskflow);
   }
@@ -101,7 +102,7 @@ int main() {
   std::cout << "1 thread DOM processing 20x work: " << time.count() / 1000
             << " nanoseconds.\n";
 
-  tf::Executor executor_4(4);
+  tf::Executor executor_4(2);
   beg = std::chrono::high_resolution_clock::now();
   executor_4.run_n(multiple_taskflow, 1000).wait();
   end = std::chrono::high_resolution_clock::now();
@@ -132,6 +133,15 @@ int main() {
 //   std::cout << "Serial DOM processing 20x work: " << time.count() / 50
             // << " nanoseconds.\n";
   std::cout << "Serial DOM processing 1x work: " << time.count() / 1000
+            << " nanoseconds.\n";
+
+  beg = std::chrono::high_resolution_clock::now();
+  executor_1.run_n(serial_taskflow, 1000).wait();
+  end = std::chrono::high_resolution_clock::now();
+  time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
+  //   std::cout << "Serial DOM processing 20x work: " << time.count() / 50
+  // << " nanoseconds.\n";
+  std::cout << "Task serial DOM processing 1x work: " << time.count() / 1000
             << " nanoseconds.\n";
 
   root->setPosition(0, 0);
