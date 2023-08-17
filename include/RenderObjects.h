@@ -61,7 +61,8 @@ public:
 
   virtual json toJson() = 0;
 
-  virtual std::string getID()  {
+  virtual std::string setTaskID(uint32_t id)  {
+    this->id = id;
     ltask = hexstr(id);
     ptask = hexstr(id) + "_p";
     return hexstr(id);
@@ -552,12 +553,12 @@ public:
 
   void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[ltask] = (tf.emplace([&]() { preLayout(0); }).name(getID()));
+    taskmap[ltask] = (tf.emplace([&]() { preLayout(0); }).name(ltask));
     taskmap[ptask] = (tf.emplace([&]() { postLayout(); }).name(ptask));
     for (auto &child : children) {
       child->getTasks(taskmap, tf);
-      // std::cout<<"Preceding "<<child->getID()<<" with
-      // "<<getID()<<std::endl;
+      // std::cout<<"Preceding "<<child->setTaskID()<<" with
+      // "<<setTaskID()<<std::endl;
       taskmap[ltask].precede((taskmap[child->ltask]));
       taskmap[child->ptask].precede((taskmap[ptask]));
     };
@@ -691,12 +692,12 @@ public:
 
   void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[ltask] = (tf.emplace([&]() { preLayout(0); }).name(getID()));
-    taskmap[ptask] = (tf.emplace([&]() { postLayout(); }).name(ptask));
+    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
     for (auto &child : children) {
       child->getTasks(taskmap, tf);
-      // std::cout<<"Preceding "<<child->getID()<<" with
-      // "<<getID()<<std::endl;
+      // std::cout<<"Preceding "<<child->setTaskID()<<" with
+      // "<<setTaskID()<<std::endl;
       taskmap[ltask].precede((taskmap[child->ltask]));
       taskmap[child->ptask].precede((taskmap[ptask]));
     };

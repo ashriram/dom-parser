@@ -6,15 +6,14 @@
 int main() {
   std::unique_ptr<ColumnBox> row154a4 = std::make_unique<ColumnBox>();
   row154a4.get()->isroot = false;
-  row154a4.get()->id = 0x154a4;
-  row154a4->getID();
+  row154a4.get()->setTaskID(0x154a4);
   row154a4.get()->children.reserve(20);
   for (int i = 0; i < 20; i++) {
     row154a4->children.push_back(new ContainerBox(nullptr, 0,0,0,0,0,0,0,0, 0xac347 + i));
     auto child = row154a4->children[i];
     child->flex = 1;
     child->isroot = true;
-    child->getID();
+    // child->setTaskID();
   }
 
   std::unique_ptr<ContainerBox> root = std::make_unique<ContainerBox>(
@@ -39,31 +38,31 @@ int main() {
   //  Test Parallel Version
   std::unordered_map<std::string,tf::Task> taskmap;
   tf::Taskflow taskflows;
-  root->getID();
+  root->setTaskID(0);
   root->getTasks(taskmap,taskflows);
-  // taskmap[ltask] = (taskflows.emplace([&]() { root->preLayout(0); }).name(root->getID()));
+  // taskmap[ltask] = (taskflows.emplace([&]() { root->preLayout(0); }).name(root->setTaskID()));
 
-  // taskmap[root->getID()+"_p"] =
-  //     (taskflows.emplace([&]() { root->postLayout(); }).name(root->getID()+"_p"));
+  // taskmap[root->setTaskID()+"_p"] =
+  //     (taskflows.emplace([&]() { root->postLayout(); }).name(root->setTaskID()+"_p"));
 
   row154a4->getTasks(taskmap,taskflows);
 
-  // taskmap[row154a4->getID()] = taskflows.emplace([&]() { row154a4->preLayout(0); }).name(row154a4->getID());
-  // taskmap[row154a4->getID()+"_p"] =
-  //     taskflows.emplace([&]() { row154a4->postLayout(); }).name(row154a4->getID()+"_p");
+  // taskmap[row154a4->setTaskID()] = taskflows.emplace([&]() { row154a4->preLayout(0); }).name(row154a4->setTaskID());
+  // taskmap[row154a4->setTaskID()+"_p"] =
+  //     taskflows.emplace([&]() { row154a4->postLayout(); }).name(row154a4->setTaskID()+"_p");
 
   // for(auto &child: row154a4->children) {
   //   // std::stringstream ss_pre,ss_post;
   //   // ss_pre << "#" << std::hex << std::setfill('0') << std::setw(6) << child->id;
-  //   taskmap[child->getID()] = taskflows.emplace([&]() { child->preLayout(0); }).name(child->getID());
+  //   taskmap[child->setTaskID()] = taskflows.emplace([&]() { child->preLayout(0); }).name(child->setTaskID());
 
   //   // ss_post << "p#" << std::hex << std::setfill('0') << std::setw(6) << child->id;
-  //   taskmap[child->getID()+"_p"] =
-  //       taskflows.emplace([&]() { child->postLayout(); }).name(child->getID()+"_p");
+  //   taskmap[child->setTaskID()+"_p"] =
+  //       taskflows.emplace([&]() { child->postLayout(); }).name(child->setTaskID()+"_p");
   
-  //   taskmap[row154a4->getID()].precede(taskmap[child->getID()]); // [0
-  //   taskmap[child->getID()].precede(taskmap[child->getID()+"_p"]); // [1]
-  //   taskmap[child->getID()+"_p"].precede(taskmap[row154a4->getID()+"_p"]); // [2]
+  //   taskmap[row154a4->setTaskID()].precede(taskmap[child->setTaskID()]); // [0
+  //   taskmap[child->setTaskID()].precede(taskmap[child->setTaskID()+"_p"]); // [1]
+  //   taskmap[child->setTaskID()+"_p"].precede(taskmap[row154a4->setTaskID()+"_p"]); // [2]
   // }
 
   taskmap[root->ltask].precede(taskmap[row154a4->ltask]); // [0]
@@ -86,7 +85,7 @@ int main() {
   root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
   std::cout << std::setw(4) << std::hex << root->toJson();
 
-  // std::cout << root->getID();
+  // std::cout << root->setTaskID();
   return 0;
 }
 
