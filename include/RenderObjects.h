@@ -28,29 +28,44 @@ public:
   virtual ~Box() = default;
 
   // Constraints
-  int minWidth = 0, minHeight = 0, maxWidth = INT32_MAX, maxHeight = INT32_MAX;
+  float minWidth = 0, minHeight = 0, maxWidth = INT32_MAX,
+        maxHeight = INT32_MAX;
   // Parent Constraints
-  int parentMinWidth = 0, parentMaxWidth = 0, parentMinHeight = 0,
-      parentMaxHeight = 0;
-  int height, width;
+  float parentMinWidth = 0, parentMaxWidth = 0, parentMinHeight = 0,
+        parentMaxHeight = 0;
+  float height, width;
   bool isroot;
   int x = 0, y = 0;
   double flex = 0, fixed = 0;
   uint32_t id;
-  virtual void setConstraints(int parentMinWidth, int parentMaxWidth,
-                              int parentMinHeight, int parentMaxHeight) = 0;
+  std::string ltask, ptask;
+  virtual void setConstraints(float parentMinWidth, float parentMaxWidth,
+                              float parentMinHeight, float parentMaxHeight) = 0;
   virtual void preLayout(int serial) = 0; // Pure virtual function
 
   virtual void setPosition(int x, int y) = 0;
 
   virtual void postLayout() = 0;
 
-  virtual void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
-                        tf::Taskflow &) = 0;
+  // virtual void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+  //                       tf::Taskflow &) {
+
+  //                       };
+
+  virtual void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+                        tf::Taskflow &tf) {
+    taskmap[ltask] = (tf.emplace([this]() { preLayout(0); }).name(ltask));
+    taskmap[ptask] = (tf.emplace([this]() { postLayout(); }).name(ptask));
+    taskmap[ltask].precede(taskmap[ptask]);
+  }
 
   virtual json toJson() = 0;
 
-  std::string getID() { return hexstr(id); }
+  virtual std::string getID()  {
+    ltask = hexstr(id);
+    ptask = hexstr(id) + "_p";
+    return hexstr(id);
+  };
 };
 
 /**
@@ -67,10 +82,12 @@ public:
     this->width = width;
     this->height = height;
     this->id = id;
+    ltask = hexstr(id);
+    ptask = hexstr(id) + "_p";
   }
 
-  void setConstraints(int parentMinWidth, int parentMaxWidth,
-                      int parentMinHeight, int parentMaxHeight) override {
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
     this->parentMinWidth = parentMinWidth;
     this->parentMaxWidth = parentMaxWidth;
     this->parentMinHeight = parentMinHeight;
@@ -109,13 +126,7 @@ public:
     j["y"] = y;
     return j;
   }
-
-  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
-                tf::Taskflow &tf) override {
-    assert(0 && "Unimplemented function");
-  }
 };
-
 /**
  * @class PaddingBox
  * @brief Represents a box that adds padding to a single child box.
@@ -136,11 +147,9 @@ public:
     this->paddingRight = paddingRight;
     this->paddingTop = paddingTop;
     this->paddingBottom = paddingBottom;
-    this->id = id;
   }
-
-  void setConstraints(int parentMinWidth, int parentMaxWidth,
-                      int parentMinHeight, int parentMaxHeight) override {
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
     this->parentMinWidth = parentMinWidth;
     this->parentMaxWidth = parentMaxWidth;
     this->parentMinHeight = parentMinHeight;
@@ -148,14 +157,15 @@ public:
   }
 
   void preLayout(int serial) override {
-    // Ensure that this box's constraints are within the constraints provided by
-    // the parent
+    // Ensure that this box's constraints are within the constraints provided
+    // by the parent
     minWidth = std::max(minWidth, parentMinWidth);
     maxWidth = std::min(maxWidth, parentMaxWidth);
     minHeight = std::max(minHeight, parentMinHeight);
     maxHeight = std::min(maxHeight, parentMaxHeight);
 
-    // Calculate the constraints for the child, taking into account the padding
+    // Calculate the constraints for the child, taking into account the
+    // padding
     int childMinWidth = minWidth - paddingLeft - paddingRight;
     int childMaxWidth = maxWidth - paddingLeft - paddingRight;
     int childMinHeight = minHeight - paddingTop - paddingBottom;
@@ -203,11 +213,6 @@ public:
     }
     return j;
   }
-
-  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
-                tf::Taskflow &tf) override {
-    assert(0 && "Unimplemented function");
-  }
 };
 
 /**
@@ -241,8 +246,8 @@ class StackBox : public Box {
 public:
   std::vector<StackChild> children;
 
-  void setConstraints(int parentMinWidth, int parentMaxWidth,
-                      int parentMinHeight, int parentMaxHeight) override {
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
     this->parentMinWidth = parentMinWidth;
     this->parentMaxWidth = parentMaxWidth;
     this->parentMinHeight = parentMinHeight;
@@ -250,8 +255,8 @@ public:
   }
 
   void preLayout(int serial) override {
-    // Ensure that this box's constraints are within the constraints provided by
-    // the parent
+    // Ensure that this box's constraints are within the constraints provided
+    // by the parent
     minWidth = std::max(minWidth, parentMinWidth);
     maxWidth = std::min(maxWidth, parentMaxWidth);
     minHeight = std::max(minHeight, parentMinHeight);
@@ -306,11 +311,6 @@ public:
     j["children"] = children;
     return j;
   }
-
-  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
-                tf::Taskflow &tf) override {
-    assert(0 && "Unimplemented function");
-  }
 };
 
 /**
@@ -319,8 +319,8 @@ public:
  * padding and margin.
  *
  * The class is a derived class of Box that represents a box
- * element with a single child. It allows setting padding and margin values that
- * affect the child's layout and size calculations.
+ * element with a single child. It allows setting padding and margin values
+ * that affect the child's layout and size calculations.
  */
 class ContainerBox : public Box {
 public:
@@ -336,10 +336,11 @@ public:
         marginLeft(marginLeft), marginRight(marginRight), marginTop(marginTop),
         marginBottom(marginBottom) {
     this->id = id;
+    ltask = hexstr(id);
+    ptask = hexstr(id) + "_p";
   }
-
-  void setConstraints(int parentMinWidth, int parentMaxWidth,
-                      int parentMinHeight, int parentMaxHeight) override {
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
     this->parentMinWidth = parentMinWidth;
     this->parentMaxWidth = parentMaxWidth;
     this->parentMinHeight = parentMinHeight;
@@ -347,15 +348,15 @@ public:
   }
 
   void preLayout(int serial) override {
-    // Ensure that this box's constraints are within the constraints provided by
-    // the parent
+    // Ensure that this box's constraints are within the constraints
+    // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
     maxWidth = std::min(maxWidth, parentMaxWidth);
     minHeight = std::max(minHeight, parentMinHeight);
     maxHeight = std::min(maxHeight, parentMaxHeight);
 
-    // Calculate the constraints for the child, taking into account the padding
-    // and margin
+    // Calculate the constraints for the child, taking into account the
+    // padding and margin
     int childMinWidth =
         minWidth - paddingLeft - paddingRight - marginLeft - marginRight;
     int childMaxWidth =
@@ -388,7 +389,8 @@ public:
       height =
           child->height + paddingTop + paddingBottom + marginTop + marginBottom;
     } else {
-      // If there is no child, the box's size is just the padding plus margin
+      // If there is no child, the box's size is just the padding plus
+      // margin
       width = paddingLeft + paddingRight + marginLeft + marginRight;
       height = paddingTop + paddingBottom + marginTop + marginBottom;
     }
@@ -422,32 +424,23 @@ public:
     }
     return j;
   }
-
-  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
-                tf::Taskflow &tf) override {
-    taskmap[getID()] =
-        &(tf.emplace([&]() { preLayout(0); }).name(getID()));
-    taskmap[getID() + "_p"] =
-        &(tf.emplace([&]() { postLayout(); }).name(getID() + "_p"));
-    taskmap[getID()]->precede(*(taskmap[getID()+"_p"]));
-  }
 };
 
 /**
  * @class RowBox
  * @brief Represents a box that lays out its children horizontally in a row.
  *
- * The RowBox class is a derived class of Box that arranges its child boxes in a
- * horizontal row. The children are evenly spaced within the row, and their
- * widths can be adjusted based on their constraints.
+ * The RowBox class is a derived class of Box that arranges its child boxes
+ * in a horizontal row. The children are evenly spaced within the row, and
+ * their widths can be adjusted based on their constraints.
  */
 class RowBox : public Box {
 public:
   std::vector<Box *> children;
   int availableWidth = 0;
 
-  void setConstraints(int parentMinWidth, int parentMaxWidth,
-                      int parentMinHeight, int parentMaxHeight) override {
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
     this->parentMinWidth = parentMinWidth;
     this->parentMaxWidth = parentMaxWidth;
     this->parentMinHeight = parentMinHeight;
@@ -455,8 +448,8 @@ public:
   }
 
   void preLayout(int serial) override {
-    // Ensure that this box's constraints are within the constraints provided by
-    // the parent
+    // Ensure that this box's constraints are within the constraints
+    // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
     maxWidth = std::min(maxWidth, parentMaxWidth);
     minHeight = std::max(minHeight, parentMinHeight);
@@ -557,35 +550,36 @@ public:
     return j;
   }
 
-  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[hexstr(id)] =
-        &(tf.emplace([&]() { preLayout(0); }).name(hexstr(id)));
-    taskmap[hexstr(id) + "_p"] =
-        &(tf.emplace([&]() { postLayout(); }).name(hexstr(id) + "p"));
+    taskmap[ltask] = (tf.emplace([&]() { preLayout(0); }).name(getID()));
+    taskmap[ptask] = (tf.emplace([&]() { postLayout(); }).name(ptask));
     for (auto &child : children) {
       child->getTasks(taskmap, tf);
-      taskmap[hexstr(id)]->precede(*(taskmap[hexstr(child->id)]));
-      taskmap[hexstr(child->id) + "p"]->precede(*(taskmap[hexstr(id) + "_p"]));
+      // std::cout<<"Preceding "<<child->getID()<<" with
+      // "<<getID()<<std::endl;
+      taskmap[ltask].precede((taskmap[child->ltask]));
+      taskmap[child->ptask].precede((taskmap[ptask]));
     };
   }
 };
 
 /**
  * @class ColumnBox
- * @brief Represents a box that lays out its children vertically in a column.
+ * @brief Represents a box that lays out its children vertically in a
+ * column.
  *
- * The ColumnBox class is a derived class of Box that arranges its child boxes
- * in a vertical column. The children are evenly spaced within the column, and
- * their heights can be adjusted based on their constraints.
+ * The ColumnBox class is a derived class of Box that arranges its child
+ * boxes in a vertical column. The children are evenly spaced within the
+ * column, and their heights can be adjusted based on their constraints.
  */
 class ColumnBox : public Box {
 public:
   std::vector<Box *> children;
   int availableHeight;
 
-  void setConstraints(int parentMinWidth, int parentMaxWidth,
-                      int parentMinHeight, int parentMaxHeight) override {
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
     this->parentMinWidth = parentMinWidth;
     this->parentMaxWidth = parentMaxWidth;
     this->parentMinHeight = parentMinHeight;
@@ -593,8 +587,8 @@ public:
   }
 
   void preLayout(int serial) override {
-    // Ensure that this box's constraints are within the constraints provided by
-    // the parent
+    // Ensure that this box's constraints are within the constraints
+    // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
     maxWidth = std::min(maxWidth, parentMaxWidth);
     minHeight = std::max(minHeight, parentMinHeight);
@@ -695,16 +689,16 @@ public:
     return j;
   }
 
-  void getTasks(std::unordered_map<std::string, tf::Task *> &taskmap,
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[hexstr(id)] =
-        &(tf.emplace([&]() { preLayout(0); }).name(hexstr(id)));
-    taskmap[hexstr(id) + "_p"] =
-        &(tf.emplace([&]() { postLayout(); }).name(hexstr(id) + "p"));
+    taskmap[ltask] = (tf.emplace([&]() { preLayout(0); }).name(getID()));
+    taskmap[ptask] = (tf.emplace([&]() { postLayout(); }).name(ptask));
     for (auto &child : children) {
       child->getTasks(taskmap, tf);
-      taskmap[hexstr(id)]->precede(*(taskmap[hexstr(child->id)]));
-      taskmap[hexstr(child->id) + "p"]->precede(*(taskmap[hexstr(id) + "_p"]));
+      // std::cout<<"Preceding "<<child->getID()<<" with
+      // "<<getID()<<std::endl;
+      taskmap[ltask].precede((taskmap[child->ltask]));
+      taskmap[child->ptask].precede((taskmap[ptask]));
     };
   }
 };
