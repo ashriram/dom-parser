@@ -35,6 +35,7 @@ public:
         parentMaxHeight = 0;
   float height, width;
   bool isroot;
+  bool flatten;
   int x = 0, y = 0;
   double flex = 0, fixed = 0;
   uint32_t id;
@@ -61,7 +62,7 @@ public:
 
   virtual json toJson() = 0;
 
-  virtual std::string setTaskID(uint32_t id)  {
+  virtual std::string setTaskID(uint32_t id) {
     this->id = id;
     ltask = hexstr(id);
     ptask = hexstr(id) + "_p";
@@ -111,8 +112,8 @@ public:
   void postLayout() override { assert(0 && "Unimplemented function"); }
 
   void setPosition(int x, int y) override {
-    this->x = 0;
-    this->y = 0;
+    this->x = x;
+    this->y = y;
   }
 
   json toJson() override {
@@ -126,6 +127,13 @@ public:
     j["x"] = x;
     j["y"] = y;
     return j;
+  }
+
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+    taskmap[ltask].precede((taskmap[ptask]));
   }
 };
 /**
@@ -195,7 +203,7 @@ public:
     this->x = paddingLeft;
     this->y = paddingTop;
     if (child) {
-      child->setPosition(x + paddingLeft, y + paddingTop);
+      child->setPosition(0 + paddingLeft, 0 + paddingTop);
     }
   }
 
@@ -213,6 +221,19 @@ public:
       j["child"] = child->toJson();
     }
     return j;
+  }
+
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+    if (child) {
+      child->getTasks(taskmap, tf);
+      taskmap[ltask].precede((taskmap[child->ltask]));
+      taskmap[child->ptask].precede((taskmap[ptask]));
+    } else {
+      taskmap[ltask].precede((taskmap[ptask]));
+    }
   }
 };
 
@@ -283,15 +304,13 @@ public:
   }
 
   void postLayout() override {
-    assert(0 && "Unimplemented function");
+    // assert(0 && "Unimplemented function");
     // To be filled for enabling parallelism
   }
 
   void setPosition(int x, int y) override {
-    this->x = 0;
-    this->y = 0;
     for (StackChild &stackChild : children) {
-      stackChild.child->setPosition(x, y);
+      stackChild.child->setPosition(0, 0);
     }
   }
 
@@ -311,6 +330,13 @@ public:
     }
     j["children"] = children;
     return j;
+  }
+  // In stack; children have to be processed serially and post layout is dummy.
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[ltask] = tf.emplace([&]() { preLayout(1); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+    taskmap[ltask].precede((taskmap[ptask]));
   }
 };
 
@@ -402,11 +428,11 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = 0;
-    this->y = 0;
+    this->x = x;
+    this->y = y;
     if (child) {
-      child->setPosition(x + marginLeft + paddingLeft,
-                         y + marginTop + paddingTop);
+      child->setPosition(0+marginLeft + paddingLeft,
+                         0+marginTop + paddingTop);
     }
   }
 
@@ -418,12 +444,31 @@ public:
     j["type"] = "container";
     j["width"] = width;
     j["height"] = height;
-    j["x"] = x;
-    j["y"] = y;
+    j["x"] = this->x;
+    j["y"] = this->y;
     if (child) {
       j["child"] = child->toJson();
     }
     return j;
+  }
+
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+                tf::Taskflow &tf) override {
+
+    // Serialize execution to single task.
+    if (flatten || !child) {
+      taskmap[ltask] = tf.emplace([&]() { preLayout(1); }).name(ltask);
+      taskmap[ptask] = tf.emplace([&]() {}).name(ptask);
+      taskmap[ltask].precede((taskmap[ptask]));
+      return;
+    }
+
+    // Multiple tasks if child exists.
+    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+    child->getTasks(taskmap, tf);
+    taskmap[ltask].precede((taskmap[child->ltask]));
+    taskmap[child->ptask].precede((taskmap[ptask]));
   }
 };
 
@@ -524,11 +569,11 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = 0;
-    this->y = 0;
-    int childX = x;
+    this->x = x;
+    this->y = y;
+    int childX = 0;
     for (const auto &child : children) {
-      child->setPosition(childX, y);
+      child->setPosition(childX, 0);
       childX += child->width;
     }
   }
@@ -663,11 +708,11 @@ public:
   }
 
   void setPosition(int x, int y) override {
-    this->x = 0;
-    this->y = 0;
-    int childY = y;
+    this->x = x;
+    this->y = y;
+    int childY = 0;
     for (Box *child : children) {
-      child->setPosition(x, childY);
+      child->setPosition(0, childY);
       childY += child->height;
     }
   }
@@ -692,14 +737,22 @@ public:
 
   void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
-    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
-    for (auto &child : children) {
-      child->getTasks(taskmap, tf);
-      // std::cout<<"Preceding "<<child->setTaskID()<<" with
-      // "<<setTaskID()<<std::endl;
-      taskmap[ltask].precede((taskmap[child->ltask]));
-      taskmap[child->ptask].precede((taskmap[ptask]));
-    };
+    if (!flatten) {
+      taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+      taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+      for (auto &child : children) {
+        child->getTasks(taskmap, tf);
+        // std::cout<<"Preceding "<<child->setTaskID()<<" with
+        // "<<setTaskID()<<std::endl;
+        taskmap[ltask].precede((taskmap[child->ltask]));
+        taskmap[child->ptask].precede((taskmap[ptask]));
+      };
+    } else {
+      taskmap[ltask] = tf.emplace([&]() { preLayout(1); }).name(ltask);
+      // Dummy just so that others can coordiante. Otherwise since prelayout is
+      // set to 1. All processing will happen on single task.
+      taskmap[ptask] = tf.emplace([&]() {}).name(ptask);
+      taskmap[ltask].precede((taskmap[ptask]));
+    }
   }
 };

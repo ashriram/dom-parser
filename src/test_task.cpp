@@ -16,12 +16,14 @@ int main() {
     // child->setTaskID();
   }
 
+  row154a4->flatten = true;
+
   std::unique_ptr<ContainerBox> root = std::make_unique<ContainerBox>(
       row154a4.get(), 0, 0, 0, 0, 0, 0, 0, 0, 0x0);
   root->setConstraints(1262, 1262, 684, 684); // Viewport size
   root.get()->isroot =
       true; // Set root to true. This is used to expand root to occupy viewport.
-
+  root->flatten = true;
   auto beg = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < 1000; i++) {
     root->preLayout(1); // Perform layout algorithm
@@ -40,34 +42,6 @@ int main() {
   tf::Taskflow taskflows;
   root->setTaskID(0);
   root->getTasks(taskmap,taskflows);
-  // taskmap[ltask] = (taskflows.emplace([&]() { root->preLayout(0); }).name(root->setTaskID()));
-
-  // taskmap[root->setTaskID()+"_p"] =
-  //     (taskflows.emplace([&]() { root->postLayout(); }).name(root->setTaskID()+"_p"));
-
-  row154a4->getTasks(taskmap,taskflows);
-
-  // taskmap[row154a4->setTaskID()] = taskflows.emplace([&]() { row154a4->preLayout(0); }).name(row154a4->setTaskID());
-  // taskmap[row154a4->setTaskID()+"_p"] =
-  //     taskflows.emplace([&]() { row154a4->postLayout(); }).name(row154a4->setTaskID()+"_p");
-
-  // for(auto &child: row154a4->children) {
-  //   // std::stringstream ss_pre,ss_post;
-  //   // ss_pre << "#" << std::hex << std::setfill('0') << std::setw(6) << child->id;
-  //   taskmap[child->setTaskID()] = taskflows.emplace([&]() { child->preLayout(0); }).name(child->setTaskID());
-
-  //   // ss_post << "p#" << std::hex << std::setfill('0') << std::setw(6) << child->id;
-  //   taskmap[child->setTaskID()+"_p"] =
-  //       taskflows.emplace([&]() { child->postLayout(); }).name(child->setTaskID()+"_p");
-  
-  //   taskmap[row154a4->setTaskID()].precede(taskmap[child->setTaskID()]); // [0
-  //   taskmap[child->setTaskID()].precede(taskmap[child->setTaskID()+"_p"]); // [1]
-  //   taskmap[child->setTaskID()+"_p"].precede(taskmap[row154a4->setTaskID()+"_p"]); // [2]
-  // }
-
-  taskmap[root->ltask].precede(taskmap[row154a4->ltask]); // [0]
-  taskmap[row154a4->ptask].precede(
-      taskmap[root->ptask]); // [3]
 
   std::ofstream fout;
   fout.open("test_tasks.dot");
