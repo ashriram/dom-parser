@@ -36,7 +36,7 @@ public:
   float height, width;
   bool isroot;
   bool flatten;
-  int x = 0, y = 0;
+  float x = 0, y = 0;
   double flex = 0, fixed = 0;
   uint32_t id;
   std::string ltask, ptask;
@@ -44,7 +44,7 @@ public:
                               float parentMinHeight, float parentMaxHeight) = 0;
   virtual void preLayout(int serial) = 0; // Pure virtual function
 
-  virtual void setPosition(int x, int y) = 0;
+  virtual void setPosition(float x, float y) = 0;
 
   virtual void postLayout() = 0;
 
@@ -111,7 +111,7 @@ public:
 
   void postLayout() override { assert(0 && "Unimplemented function"); }
 
-  void setPosition(int x, int y) override {
+  void setPosition(float x, float y) override {
     this->x = x;
     this->y = y;
   }
@@ -199,7 +199,7 @@ public:
     }
   };
 
-  void setPosition(int x, int y) override {
+  void setPosition(float x, float y) override {
     this->x = paddingLeft;
     this->y = paddingTop;
     if (child) {
@@ -308,7 +308,7 @@ public:
     // To be filled for enabling parallelism
   }
 
-  void setPosition(int x, int y) override {
+  void setPosition(float x, float y) override {
     for (StackChild &stackChild : children) {
       stackChild.child->setPosition(0, 0);
     }
@@ -427,7 +427,7 @@ public:
     }
   }
 
-  void setPosition(int x, int y) override {
+  void setPosition(float x, float y) override {
     this->x = x;
     this->y = y;
     if (child) {
@@ -568,10 +568,10 @@ public:
     width = maxWidth - availableWidth;
   }
 
-  void setPosition(int x, int y) override {
+  void setPosition(float x, float y) override {
     this->x = x;
     this->y = y;
-    int childX = 0;
+    float childX = 0;
     for (const auto &child : children) {
       child->setPosition(childX, 0);
       childX += child->width;
@@ -707,10 +707,10 @@ public:
     height = maxHeight - availableHeight;
   }
 
-  void setPosition(int x, int y) override {
+  void setPosition(float x, float y) override {
     this->x = x;
     this->y = y;
-    int childY = 0;
+    float childY = 0;
     for (Box *child : children) {
       child->setPosition(0, childY);
       childY += child->height;
