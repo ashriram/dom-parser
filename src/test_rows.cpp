@@ -22,16 +22,16 @@ int main() {
       true; // Set root to true. This is used to expand root to occupy viewport.
 
   auto beg = std::chrono::high_resolution_clock::now();
-  // for (int i = 0; i < 1000; i++) {
-  //   root->prelayout(1); // Perform layout algorithm
-  // }
+  for (int i = 0; i < 1000; i++) {
+    root->prelayout(1); // Perform layout algorithm
+  }
   auto end = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg)/1000;
-  // std::cout << "Completed DOM processing in " << time.count()
-  //           << "nanoseconds.\n";
+  std::cout << "Completed DOM processing in " << time.count()
+            << "nanoseconds.\n";
 
-  // root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
-  // std::cout << std::setw(4) << std::hex << root->tojson();
+  root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
+  std::cout << std::setw(4) << std::hex << root->tojson();
 
 
   //  Test Parallel Version
