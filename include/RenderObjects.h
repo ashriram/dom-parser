@@ -420,8 +420,8 @@ public:
     } else {
       // If there is no child, the box's size is just the padding plus
       // margin
-      width = paddingLeft + paddingRight + marginLeft + marginRight;
-      height = paddingTop + paddingBottom + marginTop + marginBottom;
+      width = paddingLeft + paddingRight + marginLeft + marginRight + minWidth;
+      height = paddingTop + paddingBottom + marginTop + marginBottom + minHeight;
     }
     if (isroot) {
       width = parentMinWidth;
@@ -724,7 +724,7 @@ public:
     std::stringstream str;
     str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
     j["id"] = str.str();
-    j["type"] = "row";
+    j["type"] = "column";
     j["width"] = width;
     j["height"] = height;
     j["x"] = x;
