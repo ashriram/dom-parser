@@ -309,6 +309,8 @@ public:
   }
 
   void setPosition(float x, float y) override {
+    this->x = x;
+    this->y = y;
     for (StackChild &stackChild : children) {
       stackChild.child->setPosition(0, 0);
     }
