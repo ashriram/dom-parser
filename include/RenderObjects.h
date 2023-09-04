@@ -105,11 +105,11 @@ public:
     maxHeight = std::min(maxHeight, parentMaxHeight);
 
     // Clamp the width and height to the specified dimensions
-    width = width;   // std::clamp(width, minWidth, maxWidth);
-    height = height; // std::clamp(height, minHeight, maxHeight);
+    width = std::clamp(width, minWidth, maxWidth);
+    height = std::clamp(height, minHeight, maxHeight);
   }
 
-  void postLayout() override { assert(0 && "Unimplemented function"); }
+  void postLayout() override {/*  assert(0 && "Unimplemented function"); */ }
 
   void setPosition(float x, float y) override {
     this->x = x;
@@ -196,6 +196,8 @@ public:
       // If there is no child, the box's size is just the padding
       width = paddingLeft + paddingRight;
       height = paddingTop + paddingBottom;
+      width = std::clamp(width, minWidth, maxWidth);
+      height = std::clamp(height, minHeight, maxHeight);
     }
   };
 
