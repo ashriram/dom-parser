@@ -47,7 +47,7 @@ int main() {
   row154a4.get()->setTaskID(0x154a4);
 
   // Creates a single task for everything nested under this node.
-  row154a4->flatten = true;
+  // row154a4->flatten = true;
   // root->flatten = true;
 
   // Create taskflow

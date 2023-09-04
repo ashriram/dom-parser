@@ -600,15 +600,23 @@ public:
 
   void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[ltask] = (tf.emplace([&]() { preLayout(0); }).name(ltask));
-    taskmap[ptask] = (tf.emplace([&]() { postLayout(); }).name(ptask));
-    for (auto &child : children) {
-      child->getTasks(taskmap, tf);
-      // std::cout<<"Preceding "<<child->setTaskID()<<" with
-      // "<<setTaskID()<<std::endl;
-      taskmap[ltask].precede((taskmap[child->ltask]));
-      taskmap[child->ptask].precede((taskmap[ptask]));
-    };
+    if (!flatten) {
+      taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+      taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+      for (auto &child : children) {
+        child->getTasks(taskmap, tf);
+        // std::cout<<"Preceding "<<child->setTaskID()<<" with
+        // "<<setTaskID()<<std::endl;
+        taskmap[ltask].precede((taskmap[child->ltask]));
+        taskmap[child->ptask].precede((taskmap[ptask]));
+      };
+    } else {
+      taskmap[ltask] = tf.emplace([&]() { preLayout(1); }).name(ltask);
+      // Dummy just so that others can coordiante. Otherwise since prelayout is
+      // set to 1. All processing will happen on single task.
+      taskmap[ptask] = tf.emplace([&]() {}).name(ptask);
+      taskmap[ltask].precede((taskmap[ptask]));
+    }
   }
 };
 
