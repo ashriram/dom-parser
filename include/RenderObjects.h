@@ -29,20 +29,21 @@ typedef struct TextMetrics {
   float width;
   float height;
 } TextMetrics;
-    TextMetrics measureText(const std::string &text,
-                                        float containerWidth, FT_Face face,
-                                        float fontSize, float spacing) {
+
+TextMetrics measureText(const std::string &text, float containerWidth,
+                        FT_Face face, float fontSize, float spacing) {
   float currentLineWidth = 0;
   float maxWidth = 0;
-  float height = fontSize;
+  float height = fontSize; // Starting with one line of text.
 
-  // Tokenize the text into words
   std::stringstream ss(text);
   std::string word;
+
   while (ss >> word) {
-    // Measure the width of the word
     float wordWidth = 0;
+    std::string partWord = "";
     FT_UInt previous = 0;
+
     for (char c : word) {
       if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
         continue;
@@ -54,27 +55,38 @@ typedef struct TextMetrics {
         wordWidth += delta.x >> 6;
       }
       wordWidth += face->glyph->advance.x >> 6;
+      partWord += c;
       previous = FT_Get_Char_Index(face, c);
+
+      if (currentLineWidth + wordWidth > containerWidth) {
+        maxWidth = std::max(maxWidth, currentLineWidth); // Save the max width.
+        height += fontSize * spacing; // Add another line's height.
+
+        // Start a new line with the part of the word that fits.
+        currentLineWidth = 0;
+        wordWidth = 0;
+        partWord = "-";
+      }
     }
 
-    // If the current word fits in the remaining space of the current line, add
-    // it
     if (currentLineWidth + wordWidth <= containerWidth) {
       currentLineWidth += wordWidth;
-    } else { // Otherwise, start a new line
+    } else {
       maxWidth = std::max(maxWidth,
-                          currentLineWidth); // Update the max width if needed
-      height += fontSize * spacing;
-      currentLineWidth =
-          wordWidth; // Reset the current line width to the current word's width
+                          currentLineWidth); // Save the max width if this line
+                                             // is wider than previous ones.
+      height += fontSize * spacing;          // Add another line's height.
+
+      // Start a new line with the current word.
+      currentLineWidth = wordWidth;
     }
   }
 
-  // For the last line
-  maxWidth = std::max(maxWidth, currentLineWidth);
+  maxWidth = std::max(maxWidth, currentLineWidth); // Handle the last line.
 
   return {maxWidth, height};
 }
+
 /**
  * @class Box
  * @brief Base class representing a box element in a layout hierarchy.
