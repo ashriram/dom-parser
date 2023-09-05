@@ -21,9 +21,11 @@ std::string hexstr(uint32_t x) {
 Split the text into words.
 For each word:
   Measure its width.
-  If adding this word to the current line doesn't exceed the container width, add the word's width to the line width. 
-  else, consider this the start of a new line, reset the line width to the current word's width, and increase the total
-  height. After all words are processed, the maximum line width will be the widest line, and the total height will account for all lines.
+  If adding this word to the current line doesn't exceed the container width,
+add the word's width to the line width. else, consider this the start of a new
+line, reset the line width to the current word's width, and increase the total
+  height. After all words are processed, the maximum line width will be the
+widest line, and the total height will account for all lines.
  */
 typedef struct TextMetrics {
   float width;
@@ -31,10 +33,10 @@ typedef struct TextMetrics {
 } TextMetrics;
 
 TextMetrics measureText(const std::string &text, float containerWidth,
-                        FT_Face face, float fontSize, float spacing) {
+                        FT_Face face, float size, float spacing) {
   float currentLineWidth = 0;
   float maxWidth = 0;
-  float height = fontSize; // Starting with one line of text.
+  float height = size; // Starting with one line of text.
 
   std::stringstream ss(text);
   std::string word;
@@ -60,7 +62,7 @@ TextMetrics measureText(const std::string &text, float containerWidth,
 
       if (currentLineWidth + wordWidth > containerWidth) {
         maxWidth = std::max(maxWidth, currentLineWidth); // Save the max width.
-        height += fontSize * spacing; // Add another line's height.
+        height += size * spacing; // Add another line's height.
 
         // Start a new line with the part of the word that fits.
         currentLineWidth = 0;
@@ -75,7 +77,7 @@ TextMetrics measureText(const std::string &text, float containerWidth,
       maxWidth = std::max(maxWidth,
                           currentLineWidth); // Save the max width if this line
                                              // is wider than previous ones.
-      height += fontSize * spacing;          // Add another line's height.
+      height += size * spacing;          // Add another line's height.
 
       // Start a new line with the current word.
       currentLineWidth = wordWidth;
@@ -181,7 +183,8 @@ public:
     height = std::clamp(height, minHeight, maxHeight);
   }
 
-  void postLayout() override {/*  assert(0 && "Unimplemented function"); */ }
+  void postLayout() override { /*  assert(0 && "Unimplemented function"); */
+  }
 
   void setPosition(float x, float y) override {
     this->x = x;
@@ -208,6 +211,92 @@ public:
     taskmap[ltask].precede((taskmap[ptask]));
   }
 };
+
+/**
+ * @class TextBox
+ * @brief Represents a box with text content.
+ *
+ * The TextBox class is a derived class of Box that represents a box with text.
+ * It can be used to display text content within specific dimensions or
+ * dynamically adjust based on the content.
+ */
+class TextBox : public Box {
+public:
+  TextBox(const std::string content, FT_Library& library, std::string ttf, float size,
+          float spacing, uint32_t id) {
+    this->content = content;
+    char *fontFile = getenv("FONT_FOLDER");
+    if (fontFile == NULL) {
+      std::cerr << "Error: FONT_FOLDER environment variable not set"
+                << std::endl;
+      exit(1);
+    }
+    std::string fontPath = std::string(fontFile) + ttf;
+   // Load a font face from a system font file on macOS
+    if (FT_New_Face(library, fontPath.c_str(), 0, &(this->face))) {
+      std::cerr << "Error loading font" << std::endl;
+      exit(1);
+    }
+    this->size = size;
+    this->spacing = spacing;
+    this->id = id;
+    ltask = hexstr(id);
+    ptask = hexstr(id) + "_p";
+
+  }
+
+  void preLayout(int serial) override {
+    // Ensure that this box's constraints are within the constraints provided by
+    // the parent
+    minWidth = std::max(minWidth, parentMinWidth);
+    maxWidth = std::min(maxWidth, parentMaxWidth);
+    minHeight = std::max(minHeight, parentMinHeight);
+    maxHeight = std::min(maxHeight, parentMaxHeight);
+
+    FT_Set_Pixel_Sizes(face, 0, size);
+
+    TextMetrics metrics = measureText(content, maxWidth, face, size, spacing);
+    width = metrics.width;
+    height = metrics.height;
+
+    if (content == "") {
+      // Clamp the width and height to the specified dimensions
+      width = std::clamp(width, minWidth, maxWidth);
+      height = std::clamp(height, minHeight, maxHeight);
+    }
+  }
+
+  void postLayout() override { /*  assert(0 && "Unimplemented function"); */
+  }
+
+  void setPosition(float x, float y) override {
+    this->x = x;
+    this->y = y;
+  }
+
+  std::string getContent() const { return content; }
+
+  json toJson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "text";
+    j["content"] = content;
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    return j;
+  }
+
+public:
+  std::string content;
+  FT_Face face; // The font face for rendering
+  float size; // font size
+  float spacing; // line spacing
+};
+
 /**
  * @class PaddingBox
  * @brief Represents a box that adds padding to a single child box.
@@ -495,7 +584,8 @@ public:
       // If there is no child, the box's size is just the padding plus
       // margin
       width = paddingLeft + paddingRight + marginLeft + marginRight + minWidth;
-      height = paddingTop + paddingBottom + marginTop + marginBottom + minHeight;
+      height =
+          paddingTop + paddingBottom + marginTop + marginBottom + minHeight;
     }
     if (isroot) {
       width = parentMinWidth;
@@ -507,8 +597,8 @@ public:
     this->x = x;
     this->y = y;
     if (child) {
-      child->setPosition(0+marginLeft + paddingLeft,
-                         0+marginTop + paddingTop);
+      child->setPosition(0 + marginLeft + paddingLeft,
+                         0 + marginTop + paddingTop);
     }
   }
 

@@ -9,8 +9,17 @@ int main() {
     return 0;
   }
 
+  // Get terminal variable for font file
+  char *fontFile = getenv("FONT_FOLDER");
+  if (fontFile == NULL) {
+    std::cerr << "Error: FONT_FOLDER environment variable not set" << std::endl;
+    return 0;
+  }
+
+  std::string fontPath = std::string(fontFile) + "/Helvetica-Bold.ttf";
+  
   // Load a font face from a system font file on macOS
-  if (FT_New_Face(library, "/System/Library/Fonts/Helvetica.ttc", 0, &face)) {
+  if (FT_New_Face(library, fontPath.c_str(), 0, &face)) {
     std::cerr << "Error loading font" << std::endl;
     return 0;
   }
