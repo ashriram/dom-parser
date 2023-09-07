@@ -5,7 +5,7 @@
 
 int main() {
   std::unique_ptr<ColumnBox> col154a4 = std::make_unique<ColumnBox>();
-  int num_children = 100;
+  int num_children = 500;
   col154a4.get()->isroot = false;
   col154a4.get()->children.reserve(num_children);
   for (int i = 0; i < num_children; i++) {
@@ -97,10 +97,10 @@ int main() {
  
 
   // Creates a single task for everything nested under this node.
-  col154a4->flatten = true;
+  col154a4->flatten = false;
   col154b4->flatten = true;
-  col154c4->flatten = true;
-  col154d4->flatten = true;
+//  col154c4->flatten = false;
+//  col154d4->flatten = false;
   //row154e4->flatten = true;
   // root->flatten = true;
 
