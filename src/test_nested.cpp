@@ -28,23 +28,23 @@ int main() {
   }
 
   std::unique_ptr<ColumnBox> col154c4 = std::make_unique<ColumnBox>();
-  col154b4.get()->isroot = false;
-  col154b4.get()->children.reserve(num_children);
+  col154c4.get()->isroot = false;
+  col154c4.get()->children.reserve(num_children);
   for (int i = 0; i < num_children; i++) {
-    col154b4->children.push_back(
-        new ContainerBox(nullptr, 0, 0, 0, 0, 0, 0, 0, 0, 0xbc347 + i));
-    auto child = col154b4->children[i];
+    col154c4->children.push_back(
+        new ContainerBox(nullptr, 0, 0, 0, 0, 0, 0, 0, 0, 0xcc347 + i));
+    auto child = col154c4->children[i];
     child->flex = 1;
     child->isroot = false;
   }
 
   std::unique_ptr<ColumnBox> col154d4 = std::make_unique<ColumnBox>();
-  col154b4.get()->isroot = false;
-  col154b4.get()->children.reserve(num_children);
+  col154d4.get()->isroot = false;
+  col154d4.get()->children.reserve(num_children);
   for (int i = 0; i < num_children; i++) {
-    col154b4->children.push_back(
-        new ContainerBox(nullptr, 0, 0, 0, 0, 0, 0, 0, 0, 0xbc347 + i));
-    auto child = col154b4->children[i];
+    col154d4->children.push_back(
+        new ContainerBox(nullptr, 0, 0, 0, 0, 0, 0, 0, 0, 0xdc347 + i));
+    auto child = col154d4->children[i];
     child->flex = 1;
     child->isroot = false;
   }
