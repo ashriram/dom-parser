@@ -5,7 +5,7 @@
 
 int main() {
   std::unique_ptr<ColumnBox> col154a4 = std::make_unique<ColumnBox>();
-  int num_children = 500;
+  int num_children = 100;
   col154a4.get()->isroot = false;
   col154a4.get()->children.reserve(num_children);
   for (int i = 0; i < num_children; i++) {

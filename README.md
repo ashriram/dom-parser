@@ -27,7 +27,15 @@ Needed work:
   2) CMake
   3) Boost
   4) C++ taskflow library 
+  5) harfbuzz 
+  6) libpng-dev
 
+
+```
+sudo apt-get install -y libharfbuzz-dev
+sudo apt-get install libpng-dev
+sudo apt-get install zlib1g-dev
+```
 
 
 ```bash

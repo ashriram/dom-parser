@@ -179,8 +179,8 @@ public:
     maxHeight = std::min(maxHeight, parentMaxHeight);
 
     // Clamp the width and height to the specified dimensions
-    width = std::clamp(width, minWidth, maxWidth);
-    height = std::clamp(height, minHeight, maxHeight);
+    // width = std::clamp(width, minWidth, maxWidth);
+    // height = std::clamp(height, minHeight, maxHeight);
   }
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
