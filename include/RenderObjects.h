@@ -231,7 +231,7 @@ public:
                 << std::endl;
       exit(1);
     }
-    std::string fontPath = std::string(fontFile) + ttf;
+    std::string fontPath = std::string(fontFile) + "/" + ttf;
    // Load a font face from a system font file on macOS
     if (FT_New_Face(library, fontPath.c_str(), 0, &(this->face))) {
       std::cerr << "Error loading font" << std::endl;
@@ -243,6 +243,14 @@ public:
     ltask = hexstr(id);
     ptask = hexstr(id) + "_p";
 
+  }
+
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
+    this->parentMinWidth = parentMinWidth;
+    this->parentMaxWidth = parentMaxWidth;
+    this->parentMinHeight = parentMinHeight;
+    this->parentMaxHeight = parentMaxHeight;
   }
 
   void preLayout(int serial) override {
@@ -289,6 +297,8 @@ public:
     j["y"] = y;
     return j;
   }
+
+  ~TextBox() { FT_Done_Face(face); }
 
 public:
   std::string content;

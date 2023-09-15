@@ -60,15 +60,12 @@ get_target_property(HARFBUZZ_INCLUDE_DIRS harfbuzz::harfbuzz INTERFACE_INCLUDE_D
 # # Define FreeType include and lib directories
 # set(HARFBUZZ_LIBRARIES ${HARFBUZZ_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}harfbuzz${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-
-
-
-
 # Brotli
 ExternalProject_Add(
     brotli
     PREFIX ${CMAKE_BINARY_DIR}/_deps/brotli
     GIT_REPOSITORY https://github.com/google/brotli.git
+    GIT_TAG v1.1.0
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 )
 set(BROTLI_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/brotli)
