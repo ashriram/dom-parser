@@ -1,0 +1,31 @@
+Completed DOM processing in 27261nanoseconds.
+1
+}Enter number of threads: 1 thread DOM processing 1x work: 29361 nanoseconds.
+  /tmp/dom-parser/Build    parallel_layout ●  ./src/test_nested| grep nano                                                 ∞
+Completed DOM processing in 29862nanoseconds.
+2
+}Enter number of threads: 2 thread DOM processing 1x work: 17590 nanoseconds.
+  /tmp/dom-parser/Build    parallel_layout ●  ./src/test_nested| grep nano                                                 ∞
+Completed DOM processing in 27762nanoseconds.
+4
+}Enter number of threads: 4 thread DOM processing 1x work: 16992 nanoseconds.
+  /tmp/dom-parser/Build    parallel_layout ●  ./src/test_nested| grep nano                                                 ∞
+Completed DOM processing in 27935nanoseconds.
+8
+}Enter number of threads: 8 thread DOM processing 1x work: 21426 nanoseconds.
+
+Completed DOM processing in 29722nanoseconds.
+1
+}Enter number of threads: 1 thread DOM processing 1x work: 242981 nanoseconds.
+  /tmp/dom-parser/Build    parallel_layout ●  ./src/test_nested| grep nano                                                 ∞
+Completed DOM processing in 29752nanoseconds.
+2
+}Enter number of threads: 2 thread DOM processing 1x work: 209843 nanoseconds.
+  /tmp/dom-parser/Build    parallel_layout ●  ./src/test_nested| grep nano                                                 ∞
+Completed DOM processing in 30743nanoseconds.
+4
+}Enter number of threads: 4 thread DOM processing 1x work: 212123 nanoseconds.
+  /tmp/dom-parser/Build    parallel_layout ●  ./src/test_nested| grep nano                                                 ∞
+Completed DOM processing in 37345nanoseconds.
+8
+}Enter number of threads: 8 thread DOM processing 1x work: 187468 nanoseconds.

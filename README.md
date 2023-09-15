@@ -27,7 +27,15 @@ Needed work:
   2) CMake
   3) Boost
   4) C++ taskflow library 
+  5) harfbuzz 
+  6) libpng-dev
 
+
+```
+sudo apt-get install -y libharfbuzz-dev
+sudo apt-get install libpng-dev
+sudo apt-get install zlib1g-dev
+```
 
 
 ```bash
@@ -53,3 +61,10 @@ cd Build; make
 - Pre task (produce layout constraints for child)
 - Post (based on child’s size, position child)
 - Size (fused with post)
+
+```bash
+cmake -B Build
+export FONT_FOLDER=$REPO/fonts
+cd Build; make
+./src/test_textbox
+```
