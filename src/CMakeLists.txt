@@ -12,7 +12,7 @@ list(REMOVE_ITEM SOURCES "main.cpp")
 add_executable(dom_parser main.cpp)
 add_executable(dom_bench bench.cpp)
 
-set(BENCHMARK_NAMES layout parallel_layout test_rows test_cols test_task test_nested test_font test_textbox) # ... add more names as needed
+set(BENCHMARK_NAMES layout parallel_layout test_rows test_cols test_task test_nested test_font test_textbox test_image) # ... add more names as needed
 
 
 target_link_libraries(dom_bench benchmark::benchmark Threads::Threads)

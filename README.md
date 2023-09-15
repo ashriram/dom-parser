@@ -61,3 +61,10 @@ cd Build; make
 - Pre task (produce layout constraints for child)
 - Post (based on child’s size, position child)
 - Size (fused with post)
+
+```bash
+cmake -B Build
+export FONT_FOLDER=$REPO/fonts
+cd Build; make
+./src/test_textbox
+```

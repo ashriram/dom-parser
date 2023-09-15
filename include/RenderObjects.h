@@ -5,6 +5,9 @@
 #include <sstream>
 #include <vector>
 #include FT_FREETYPE_H
+// Order matters here. stb_image.h must be included after STB_IMAGE_IMPLEMENTATION is defined
+#define STB_IMAGE_IMPLEMENTATION
+#include <ext/stb_image.h>
 
 using json = nlohmann::json;
 
@@ -77,7 +80,7 @@ TextMetrics measureText(const std::string &text, float containerWidth,
       maxWidth = std::max(maxWidth,
                           currentLineWidth); // Save the max width if this line
                                              // is wider than previous ones.
-      height += size * spacing;          // Add another line's height.
+      height += size * spacing;              // Add another line's height.
 
       // Start a new line with the current word.
       currentLineWidth = wordWidth;
@@ -179,8 +182,8 @@ public:
     maxHeight = std::min(maxHeight, parentMaxHeight);
 
     // Clamp the width and height to the specified dimensions
-    // width = std::clamp(width, minWidth, maxWidth);
-    // height = std::clamp(height, minHeight, maxHeight);
+    width = std::clamp(width, minWidth, maxWidth);
+    height = std::clamp(height, minHeight, maxHeight);
   }
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
@@ -213,6 +216,88 @@ public:
 };
 
 /**
+ * @brief ImageBox represents a box with an image.
+ */
+class ImageBox : public Box {
+public:
+  ImageBox(const std::string &imagePath, uint32_t id) {
+    char *fontFile = getenv("IMG_FOLDER");
+    if (fontFile == NULL) {
+      std::cerr << "Error: IMG_FOLDER environment variable not set"
+                << std::endl;
+      exit(1);
+    }
+    this->imagePath = std::string(fontFile) + "/" + imagePath;
+    this->id = id;
+    ltask = hexstr(id);
+    ptask = hexstr(id) + "_p";
+  }
+
+  void setConstraints(float parentMinWidth, float parentMaxWidth,
+                      float parentMinHeight, float parentMaxHeight) override {
+    this->parentMinWidth = parentMinWidth;
+    this->parentMaxWidth = parentMaxWidth;
+    this->parentMinHeight = parentMinHeight;
+    this->parentMaxHeight = parentMaxHeight;
+  }
+
+  void preLayout(int serial) override {
+    // Ensure that this box's constraints are within the constraints provided by
+    // the parent
+    minWidth = std::max(minWidth, parentMinWidth);
+    maxWidth = std::min(maxWidth, parentMaxWidth);
+    minHeight = std::max(minHeight, parentMinHeight);
+    maxHeight = std::min(maxHeight, parentMaxHeight);
+
+    // Using stb_image to get image dimensions
+    int x, y, n; // n is the number of channels, which we won't use here
+    if (stbi_info(imagePath.c_str(), &x, &y, &n)) {
+      width = x;
+      height = y;
+    } else {
+      // Handle error, image couldn't be read
+      // For simplicity, setting width and height to 0
+      width = 0;
+      height = 0;
+    }
+    // Clamp the width and height to the specified dimensions
+    width = std::clamp(width, minWidth, maxWidth);
+    height = std::clamp(height, minHeight, maxHeight);
+  }
+
+  void postLayout() override { /*  assert(0 && "Unimplemented function"); */
+  }
+
+  void setPosition(float x, float y) override {
+    this->x = x;
+    this->y = y;
+  }
+
+  json toJson() override {
+    json j;
+    std::stringstream str;
+    str << "#" << std::hex << std::setfill('0') << std::setw(6) << id;
+    j["id"] = str.str();
+    j["type"] = "sized";
+    j["width"] = width;
+    j["height"] = height;
+    j["x"] = x;
+    j["y"] = y;
+    return j;
+  }
+
+  void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
+                tf::Taskflow &tf) override {
+    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+    taskmap[ltask].precede((taskmap[ptask]));
+  }
+
+private:
+  std::string imagePath;
+};
+
+/**
  * @class TextBox
  * @brief Represents a box with text content.
  *
@@ -222,8 +307,8 @@ public:
  */
 class TextBox : public Box {
 public:
-  TextBox(const std::string content, FT_Library& library, std::string ttf, float size,
-          float spacing, uint32_t id) {
+  TextBox(const std::string content, FT_Library &library, std::string ttf,
+          float size, float spacing, uint32_t id) {
     this->content = content;
     char *fontFile = getenv("FONT_FOLDER");
     if (fontFile == NULL) {
@@ -232,7 +317,7 @@ public:
       exit(1);
     }
     std::string fontPath = std::string(fontFile) + "/" + ttf;
-   // Load a font face from a system font file on macOS
+    // Load a font face from a system font file on macOS
     if (FT_New_Face(library, fontPath.c_str(), 0, &(this->face))) {
       std::cerr << "Error loading font" << std::endl;
       exit(1);
@@ -242,7 +327,6 @@ public:
     this->id = id;
     ltask = hexstr(id);
     ptask = hexstr(id) + "_p";
-
   }
 
   void setConstraints(float parentMinWidth, float parentMaxWidth,
@@ -302,8 +386,8 @@ public:
 
 public:
   std::string content;
-  FT_Face face; // The font face for rendering
-  float size; // font size
+  FT_Face face;  // The font face for rendering
+  float size;    // font size
   float spacing; // line spacing
 };
 
