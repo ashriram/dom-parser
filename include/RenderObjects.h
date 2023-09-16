@@ -5,7 +5,8 @@
 #include <sstream>
 #include <vector>
 #include FT_FREETYPE_H
-// Order matters here. stb_image.h must be included after STB_IMAGE_IMPLEMENTATION is defined
+// Order matters here. stb_image.h must be included after
+// STB_IMAGE_IMPLEMENTATION is defined
 #define STB_IMAGE_IMPLEMENTATION
 #include <ext/stb_image.h>
 
@@ -111,9 +112,11 @@ public:
   float parentMinWidth = 0, parentMaxWidth = 0, parentMinHeight = 0,
         parentMaxHeight = 0;
   float height, width;
-  bool isroot;
-  bool flatten;
+  bool isroot = false;
+  bool flatten = false;
+  bool debug = false; // Debug mode
   float x = 0, y = 0;
+  float flutterWidth = 0, flutterHeight = 0, flutterX = 0, flutterY = 0;
   double flex = 0, fixed = 0;
   uint32_t id;
   std::string ltask, ptask;
@@ -145,6 +148,13 @@ public:
     ptask = hexstr(id) + "_p";
     return hexstr(id);
   };
+
+  virtual inline void debug()() {
+    width = flutterWidth;
+    height = flutterHeight;
+    x = flutterX;
+    y = flutterY;
+  }
 };
 
 /**
@@ -187,6 +197,10 @@ public:
   }
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
+    if (debug) {
+      debug();
+      return;
+    }
   }
 
   void setPosition(float x, float y) override {
@@ -266,6 +280,10 @@ public:
   }
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
+    if (debug) {
+      debug();
+      return;
+    }
   }
 
   void setPosition(float x, float y) override {
@@ -359,6 +377,10 @@ public:
   }
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
+    if (debug) {
+      debug();
+      return;
+    }
   }
 
   void setPosition(float x, float y) override {
@@ -421,6 +443,10 @@ public:
   }
 
   void preLayout(int serial) override {
+    if (debug) {
+      debug();
+      return;
+    }
     // Ensure that this box's constraints are within the constraints provided
     // by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -443,6 +469,10 @@ public:
   };
 
   void postLayout() override {
+    if (debug) {
+      debug();
+      return;
+    }
     if (child) {
       // Add the padding back to compute the size of this box
       width = child->width + paddingLeft + paddingRight;
@@ -484,13 +514,17 @@ public:
                 tf::Taskflow &tf) override {
     taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
     taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+
+    if (flatten || !child) {
+      taskmap[ltask].precede((taskmap[ptask]));
+      return;
+    }
+
     if (child) {
       child->getTasks(taskmap, tf);
       taskmap[ltask].precede((taskmap[child->ltask]));
       taskmap[child->ptask].precede((taskmap[ptask]));
-    } else {
-      taskmap[ltask].precede((taskmap[ptask]));
-    }
+    } 
   }
 };
 
@@ -534,6 +568,12 @@ public:
   }
 
   void preLayout(int serial) override {
+
+    if (debug) {
+      debug();
+      return;
+    }
+
     // Ensure that this box's constraints are within the constraints provided
     // by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -669,6 +709,12 @@ public:
   }
 
   void postLayout() override {
+
+    if (debug) {
+      debug();
+      return;
+    }
+
     if (child) {
       width =
           child->width + paddingLeft + paddingRight + marginLeft + marginRight;
@@ -754,6 +800,12 @@ public:
   }
 
   void preLayout(int serial) override {
+
+    if (debug) {
+      debug();
+      return;
+    }
+
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -800,6 +852,12 @@ public:
   }
 
   void postLayout() override {
+
+    if (debug) {
+      debug();
+      return;
+    }
+    
     // Calculate the width available for flexible child boxes
     for (const auto &child : children) {
       if (child->flex == 0.0) {
@@ -901,6 +959,12 @@ public:
   }
 
   void preLayout(int serial) override {
+
+    if (debug) {
+      debug();
+      return;
+    }
+
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -946,6 +1010,12 @@ public:
   }
 
   void postLayout() override {
+
+    if (debug) {
+      debug();
+      return;
+    }
+
     // Calculate the width available for flexible child boxes
     for (const auto &child : children) {
       if (child->flex == 0.0) {
