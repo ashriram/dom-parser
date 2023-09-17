@@ -149,7 +149,7 @@ public:
     return hexstr(id);
   };
 
-  virtual inline void debug()() {
+  virtual inline void gold() {
     width = flutterWidth;
     height = flutterHeight;
     x = flutterX;
@@ -198,7 +198,7 @@ public:
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
     if (debug) {
-      debug();
+      gold();
       return;
     }
   }
@@ -281,7 +281,7 @@ public:
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
     if (debug) {
-      debug();
+      gold();
       return;
     }
   }
@@ -378,7 +378,7 @@ public:
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
     if (debug) {
-      debug();
+      gold();
       return;
     }
   }
@@ -443,10 +443,7 @@ public:
   }
 
   void preLayout(int serial) override {
-    if (debug) {
-      debug();
-      return;
-    }
+
     // Ensure that this box's constraints are within the constraints provided
     // by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -456,21 +453,24 @@ public:
 
     // Calculate the constraints for the child, taking into account the
     // padding
-    int childMinWidth = minWidth - paddingLeft - paddingRight;
-    int childMaxWidth = maxWidth - paddingLeft - paddingRight;
-    int childMinHeight = minHeight - paddingTop - paddingBottom;
-    int childMaxHeight = maxHeight - paddingTop - paddingBottom;
+    float childMinWidth = minWidth - paddingLeft - paddingRight;
+    float childMaxWidth = maxWidth - paddingLeft - paddingRight;
+    float childMinHeight = minHeight - paddingTop - paddingBottom;
+    float childMaxHeight = maxHeight - paddingTop - paddingBottom;
 
     // If there is a child, lay it out within the adjusted constraints
     if (child) {
-      child->preLayout(serial);
+      if (!debug)
+        child->preLayout(serial);
+      else
+        child->gold();
     }
     postLayout();
   };
 
   void postLayout() override {
     if (debug) {
-      debug();
+      gold();
       return;
     }
     if (child) {
@@ -512,19 +512,20 @@ public:
 
   void getTasks(std::unordered_map<std::string, tf::Task> &taskmap,
                 tf::Taskflow &tf) override {
-    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
-    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
-
+    // Serialize execution to single task.
     if (flatten || !child) {
+      taskmap[ltask] = tf.emplace([&]() { preLayout(1); }).name(ltask);
+      taskmap[ptask] = tf.emplace([&]() {}).name(ptask);
       taskmap[ltask].precede((taskmap[ptask]));
       return;
     }
 
-    if (child) {
-      child->getTasks(taskmap, tf);
-      taskmap[ltask].precede((taskmap[child->ltask]));
-      taskmap[child->ptask].precede((taskmap[ptask]));
-    } 
+    // Multiple tasks if child exists.
+    taskmap[ltask] = tf.emplace([&]() { preLayout(0); }).name(ltask);
+    taskmap[ptask] = tf.emplace([&]() { postLayout(); }).name(ptask);
+    child->getTasks(taskmap, tf);
+    taskmap[ltask].precede((taskmap[child->ltask]));
+    taskmap[child->ptask].precede((taskmap[ptask]));
   }
 };
 
@@ -568,12 +569,6 @@ public:
   }
 
   void preLayout(int serial) override {
-
-    if (debug) {
-      debug();
-      return;
-    }
-
     // Ensure that this box's constraints are within the constraints provided
     // by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -589,6 +584,10 @@ public:
     // dimensions of this box to encompass all children
     for (StackChild &stackChild : children) {
       Box *child = stackChild.child;
+      if (debug) {
+        child->gold();
+        continue;
+      }
       child->setConstraints(minWidth, maxWidth, minHeight, maxHeight);
       child->preLayout(serial);
       width = std::max(width, child->width +
@@ -601,6 +600,10 @@ public:
   }
 
   void postLayout() override {
+    if (debug) {
+      gold();
+      return;
+    }
     // assert(0 && "Unimplemented function");
     // To be filled for enabling parallelism
   }
@@ -683,13 +686,13 @@ public:
 
     // Calculate the constraints for the child, taking into account the
     // padding and margin
-    int childMinWidth =
+    float childMinWidth =
         minWidth - paddingLeft - paddingRight - marginLeft - marginRight;
-    int childMaxWidth =
+    float childMaxWidth =
         maxWidth - paddingLeft - paddingRight - marginLeft - marginRight;
-    int childMinHeight =
+    float childMinHeight =
         minHeight - paddingTop - paddingBottom - marginTop - marginBottom;
-    int childMaxHeight =
+    float childMaxHeight =
         maxHeight - paddingTop - paddingBottom - marginTop - marginBottom;
 
     // If there is a child, lay it out within the adjusted constraints
@@ -702,7 +705,10 @@ public:
     if (serial) {
       // Serial version
       if (child) {
-        child->preLayout(serial);
+        if (!debug)
+          child->preLayout(serial);
+        else
+          child->gold();
       }
       postLayout();
     }
@@ -711,7 +717,7 @@ public:
   void postLayout() override {
 
     if (debug) {
-      debug();
+      gold();
       return;
     }
 
@@ -789,7 +795,7 @@ public:
 class RowBox : public Box {
 public:
   std::vector<Box *> children;
-  int availableWidth = 0;
+  float availableWidth = 0;
 
   void setConstraints(float parentMinWidth, float parentMaxWidth,
                       float parentMinHeight, float parentMaxHeight) override {
@@ -800,12 +806,6 @@ public:
   }
 
   void preLayout(int serial) override {
-
-    if (debug) {
-      debug();
-      return;
-    }
-
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -832,7 +832,10 @@ public:
       // Invoke prelayout on fixed children
       for (const auto &child : children) {
         if (child->flex == 0.0) {
-          child->preLayout(serial);
+          if (!debug)
+            child->preLayout(serial);
+          else
+            child->gold();
         }
       }
     }
@@ -845,19 +848,22 @@ public:
     // Invoke prelayout on flex children
     if (serial) {
       for (const auto &child : children) {
-        if (child->flex > 0.0)
-          child->preLayout(serial);
+        if (child->flex > 0.0) {
+          if (!debug)
+            child->preLayout(serial);
+          else
+            child->gold();
+        }
       }
     }
   }
 
   void postLayout() override {
-
     if (debug) {
-      debug();
+      gold();
       return;
     }
-    
+
     // Calculate the width available for flexible child boxes
     for (const auto &child : children) {
       if (child->flex == 0.0) {
@@ -948,7 +954,7 @@ public:
 class ColumnBox : public Box {
 public:
   std::vector<Box *> children;
-  int availableHeight;
+  float availableHeight;
 
   void setConstraints(float parentMinWidth, float parentMaxWidth,
                       float parentMinHeight, float parentMaxHeight) override {
@@ -959,11 +965,6 @@ public:
   }
 
   void preLayout(int serial) override {
-
-    if (debug) {
-      debug();
-      return;
-    }
 
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
@@ -990,7 +991,10 @@ public:
       // Invoke prelayout on fixed children
       for (const auto &child : children) {
         if (child->flex == 0.0) {
-          child->preLayout(serial);
+          if (!debug)
+            child->preLayout(serial);
+          else
+            child->gold();
         }
       }
     }
@@ -1010,9 +1014,8 @@ public:
   }
 
   void postLayout() override {
-
     if (debug) {
-      debug();
+      gold();
       return;
     }
 
