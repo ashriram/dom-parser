@@ -1,0 +1,99 @@
+{
+    "child": {
+        "children": [
+            {
+                "content": "* Maintained",
+                "error": 1,
+                "height": 16.0,
+                "id": "#0ac347",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 0.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac348",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 16.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac349",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 32.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac34a",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 48.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac34b",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 64.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac34c",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 80.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac34d",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 96.0
+            },
+            {
+                "content": "* Maintained",
+                "error": 0,
+                "height": 16.0,
+                "id": "#0ac34e",
+                "type": "text",
+                "width": 89.0,
+                "x": 0.0,
+                "y": 112.0
+            }
+        ],
+        "error": 0,
+        "height": 684.0,
+        "id": "#0154a4",
+        "type": "column",
+        "width": 1262.0,
+        "x": 0.0,
+        "y": 0.0
+    },
+    "height": 684.0,
+    "id": "#000000",
+    "type": "container",
+    "width": 1262.0,
+    "x": 0.0,
+    "y": 0.0
+}
