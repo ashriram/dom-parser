@@ -71,20 +71,23 @@ int main() {
   taskmap[row154a4->ptask].precede(taskmap[root->ptask]); // [3]
   
   std::ofstream fout;
-  fout.open("test_cols.dot");
+  fout.open("test_textbox.dot");
   taskflows.dump(fout);
   fout.close();
 
-  tf::Executor executor_1(8);
-  beg = std::chrono::high_resolution_clock::now();
-  executor_1.run_n(taskflows, 1000).wait();
-  end = std::chrono::high_resolution_clock::now();
-  time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
-  std::cout << std::dec << "8 thread DOM processing 1x work: " << time.count() / 1000
-            << " nanoseconds.\n";
+  for (int num_threads = 1; num_threads <= 8; num_threads = num_threads << 1) {
+    tf::Executor executor_1(num_threads);
+    beg = std::chrono::high_resolution_clock::now();
+    executor_1.run_n(taskflows, 1000).wait();
+    end = std::chrono::high_resolution_clock::now();
+    time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
+    std::cout << std::dec << num_threads
+              << " thread DOM processing 1x work: " << time.count() / 1000
+              << " nanoseconds.\n";
 
-  root->setPosition(0, 0); // Set coordinates. Currently sets global coordinates
-  std::cout << std::setw(4) << std::hex << root->toJson();
+    root->setPosition(0, 0); // Set coordinates.
+    std::cout << std::setw(4) << std::hex << root->toJson();
+  }
 
   // FT_Done_Face(face);
   FT_Done_FreeType(library);

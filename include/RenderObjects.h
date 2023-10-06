@@ -155,6 +155,11 @@ public:
     x = flutterX;
     y = flutterY;
   }
+  virtual inline uint8_t error() {
+    uint8_t error_code;
+    error_code = (width != flutterWidth) << 3 | (height != flutterHeight) << 2 |
+                 (x != flutterX) << 1 | (y != flutterY);
+  }
 };
 
 /**
@@ -218,6 +223,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     return j;
   }
 
@@ -301,6 +307,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     return j;
   }
 
@@ -401,6 +408,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     return j;
   }
 
@@ -504,6 +512,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     if (child) {
       j["child"] = child->toJson();
     }
@@ -626,6 +635,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     json children;
     for (StackChild &stackChild : this->children) {
       children.push_back(stackChild.child->toJson());
@@ -912,6 +922,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     json children;
     for (const auto &child : this->children) {
       children.push_back(child->toJson());
@@ -1068,6 +1079,7 @@ public:
     j["height"] = height;
     j["x"] = x;
     j["y"] = y;
+    j["error"] = error();
     json children;
     for (const auto &child : this->children) {
       children.push_back(child->toJson());
