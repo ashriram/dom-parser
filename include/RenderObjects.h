@@ -120,6 +120,9 @@ public:
   double flex = 0, fixed = 0;
   uint32_t id;
   std::string ltask, ptask;
+  std::chrono::time_point<std::chrono::steady_clock> start, end;
+  std::chrono::nanoseconds duration;
+
   virtual void setConstraints(float parentMinWidth, float parentMaxWidth,
                               float parentMinHeight, float parentMaxHeight) = 0;
   virtual void preLayout(int serial) = 0; // Pure virtual function
@@ -159,6 +162,16 @@ public:
     uint8_t error_code;
     error_code = (width != flutterWidth) << 3 | (height != flutterHeight) << 2 |
                  (x != flutterX) << 1 | (y != flutterY);
+  }
+  inline void startTimer() {
+    start = std::chrono::high_resolution_clock::now();
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::nanoseconds::zero();
+  }
+  inline void addTime() {
+    duration = duration + std::chrono::duration_cast<std::chrono::nanoseconds>(
+                              std::chrono::high_resolution_clock::now() - end);
+    end = std::chrono::high_resolution_clock::now();
   }
 };
 
@@ -335,12 +348,13 @@ public:
   TextBox(const std::string content, FT_Library &library, std::string ttf,
           float size, float spacing, uint32_t id) {
     this->content = content;
-    char *fontFile = getenv("FONT_FOLDER");
-    if (fontFile == NULL) {
-      std::cerr << "Error: FONT_FOLDER environment variable not set"
-                << std::endl;
-      exit(1);
-    }
+    char *fontFile = "/Users/ashriram/packages/src/taskflow/DOM-Parser/fonts";
+
+    // if (fontFile == NULL) {
+    //   std::cerr << "Error: FONT_FOLDER environment variable not set"
+    //             << std::endl;
+    //   exit(1);
+    // }
     std::string fontPath = std::string(fontFile) + "/" + ttf;
     // Load a font face from a system font file on macOS
     if (FT_New_Face(library, fontPath.c_str(), 0, &(this->face))) {
@@ -363,6 +377,7 @@ public:
   }
 
   void preLayout(int serial) override {
+    startTimer();
     // Ensure that this box's constraints are within the constraints provided by
     // the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -381,6 +396,7 @@ public:
       width = std::clamp(width, minWidth, maxWidth);
       height = std::clamp(height, minHeight, maxHeight);
     }
+  addTime();
   }
 
   void postLayout() override { /*  assert(0 && "Unimplemented function"); */
@@ -388,6 +404,7 @@ public:
       gold();
       return;
     }
+  addTime();
   }
 
   void setPosition(float x, float y) override {
@@ -409,10 +426,11 @@ public:
     j["x"] = x;
     j["y"] = y;
     j["error"] = error();
+    j["time"]  = duration.count();
     return j;
   }
 
-  ~TextBox() { FT_Done_Face(face); }
+  // ~TextBox() { FT_Done_Face(face); }
 
 public:
   std::string content;
@@ -431,12 +449,12 @@ public:
  */
 class PaddingBox : public Box {
 public:
-  Box *child = nullptr;
+  std::unique_ptr<Box> child = nullptr;
   int paddingLeft = 0, paddingRight = 0, paddingTop = 0, paddingBottom = 0;
 
-  PaddingBox(Box *child, int paddingLeft, int paddingRight, int paddingTop,
+  PaddingBox(std::unique_ptr<Box> child, int paddingLeft, int paddingRight, int paddingTop,
              int paddingBottom, uint32_t id) {
-    this->child = child;
+    this->child = std::move(child);
     this->paddingLeft = paddingLeft;
     this->paddingRight = paddingRight;
     this->paddingTop = paddingTop;
@@ -548,13 +566,13 @@ public:
  */
 class StackChild {
 public:
-  Box *child;
+  std::unique_ptr<Box> child;
   float horizontalAlignment;
   float verticalAlignment;
 
-  StackChild(Box *child, float horizontalAlignment, float verticalAlignment)
-      : child(child), horizontalAlignment(horizontalAlignment),
-        verticalAlignment(verticalAlignment) {}
+  StackChild(std::unique_ptr<Box> *child, float horizontalAlignment, float verticalAlignment)
+      : horizontalAlignment(horizontalAlignment),
+        verticalAlignment(verticalAlignment) { child = std::move(child);}
 };
 
 /**
@@ -591,20 +609,19 @@ public:
 
     // Lay out each child within this box's constraints, then adjust the
     // dimensions of this box to encompass all children
-    for (StackChild &stackChild : children) {
-      Box *child = stackChild.child;
+    for (StackChild &stackChild : children){
       if (debug) {
-        child->gold();
+        stackChild.child->gold();
         continue;
       }
-      child->setConstraints(minWidth, maxWidth, minHeight, maxHeight);
-      child->preLayout(serial);
-      width = std::max(width, child->width +
+      stackChild.child->setConstraints(minWidth, maxWidth, minHeight, maxHeight);
+      stackChild.child->preLayout(serial);
+      width = std::max(width, stackChild.child->width +
                                   (int)std::abs(stackChild.horizontalAlignment *
-                                                child->width));
-      height = std::max(height, child->height +
+                                                stackChild.child->width));
+      height = std::max(height, stackChild.child->height +
                                     (int)std::abs(stackChild.verticalAlignment *
-                                                  child->height));
+                                                  stackChild.child->height));
     }
   }
 
@@ -663,18 +680,19 @@ public:
  */
 class ContainerBox : public Box {
 public:
-  Box *child = nullptr;
+  std::unique_ptr<Box> child;
   int paddingLeft = 0, paddingRight = 0, paddingTop = 0, paddingBottom = 0;
   int marginLeft = 0, marginRight = 0, marginTop = 0, marginBottom = 0;
 
-  ContainerBox(Box *child, int paddingLeft, int paddingRight, int paddingTop,
+  ContainerBox(std::unique_ptr<Box> child, int paddingLeft, int paddingRight, int paddingTop,
                int paddingBottom, int marginLeft, int marginRight,
                int marginTop, int marginBottom, uint32_t id)
-      : child(child), paddingLeft(paddingLeft), paddingRight(paddingRight),
+      : paddingLeft(paddingLeft), paddingRight(paddingRight),
         paddingTop(paddingTop), paddingBottom(paddingBottom),
         marginLeft(marginLeft), marginRight(marginRight), marginTop(marginTop),
         marginBottom(marginBottom) {
     this->id = id;
+    this->child = std::move(child);
     ltask = hexstr(id);
     ptask = hexstr(id) + "_p";
   }
@@ -687,6 +705,7 @@ public:
   }
 
   void preLayout(int serial) override {
+    startTimer();
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -711,7 +730,7 @@ public:
                             childMaxHeight);
       // Add the padding and margin back to compute the size of this box
     }
-
+    addTime();
     if (serial) {
       // Serial version
       if (child) {
@@ -747,6 +766,7 @@ public:
       width = parentMinWidth;
       height = parentMinHeight;
     }
+    addTime();
   }
 
   void setPosition(float x, float y) override {
@@ -771,6 +791,7 @@ public:
     if (child) {
       j["child"] = child->toJson();
     }
+    j["time"] = duration.count();
     return j;
   }
 
@@ -804,7 +825,7 @@ public:
  */
 class RowBox : public Box {
 public:
-  std::vector<Box *> children;
+  std::vector<std::unique_ptr<Box>> children;
   float availableWidth = 0;
 
   void setConstraints(float parentMinWidth, float parentMaxWidth,
@@ -816,6 +837,7 @@ public:
   }
 
   void preLayout(int serial) override {
+    startTimer();
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -836,6 +858,8 @@ public:
                               height, height);
       }
     }
+
+    addTime();
 
     if (serial) {
       // Serial version
@@ -900,6 +924,7 @@ public:
       }
     }
     width = maxWidth - availableWidth;
+    addTime();
   }
 
   void setPosition(float x, float y) override {
@@ -923,6 +948,7 @@ public:
     j["x"] = x;
     j["y"] = y;
     j["error"] = error();
+    j["time"] = duration.count();
     json children;
     for (const auto &child : this->children) {
       children.push_back(child->toJson());
@@ -964,7 +990,7 @@ public:
  */
 class ColumnBox : public Box {
 public:
-  std::vector<Box *> children;
+  std::vector<std::unique_ptr<Box>> children;
   float availableHeight;
 
   void setConstraints(float parentMinWidth, float parentMaxWidth,
@@ -976,7 +1002,7 @@ public:
   }
 
   void preLayout(int serial) override {
-
+    startTimer();
     // Ensure that this box's constraints are within the constraints
     // provided by the parent
     minWidth = std::max(minWidth, parentMinWidth);
@@ -996,6 +1022,7 @@ public:
                               height, height);
       }
     }
+
 
     if (serial) {
       // Serial version
@@ -1022,6 +1049,7 @@ public:
           child->preLayout(serial);
       }
     }
+    // addTime();
   }
 
   void postLayout() override {
@@ -1029,7 +1057,8 @@ public:
       gold();
       return;
     }
-
+    // addTime();
+    // startTimer();
     // Calculate the width available for flexible child boxes
     for (const auto &child : children) {
       if (child->flex == 0.0) {
@@ -1057,13 +1086,14 @@ public:
     }
     // This box's height is the combined height of all children
     height = maxHeight - availableHeight;
+    // addTime();
   }
 
   void setPosition(float x, float y) override {
     this->x = x;
     this->y = y;
     float childY = 0;
-    for (Box *child : children) {
+    for (const auto& child : children) {
       child->setPosition(0, childY);
       childY += child->height;
     }
@@ -1080,6 +1110,7 @@ public:
     j["x"] = x;
     j["y"] = y;
     j["error"] = error();
+    j["time"] = duration.count();
     json children;
     for (const auto &child : this->children) {
       children.push_back(child->toJson());
